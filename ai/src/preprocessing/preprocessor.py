@@ -38,7 +38,7 @@ class ImagePreprocessor:
             raise TypeError(f"Unsupported image input type: {type(image_input)}")
 
     @staticmethod
-    def smart_resize(img: np.ndarray, min_dim: int = 900, max_dim: int = 2500) -> Tuple[np.ndarray, float]:
+    def smart_resize(img: np.ndarray, min_dim: int = 650, max_dim: int = 1600) -> Tuple[np.ndarray, float]:
         """
         Scales low-resolution handwriting to improve stroke visibility,
         and scales down oversized captures to optimize latency and memory.

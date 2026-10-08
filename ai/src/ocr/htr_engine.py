@@ -81,7 +81,7 @@ class HTREngine:
             segments: List of typed Segment objects with real model confidence and bboxes.
             average_confidence: Arithmetic mean of genuine segment confidences.
         """
-        res, elapse = self.ocr(image)
+        res, elapse = self.ocr(image, use_cls=False)
 
         if not res:
             return "", [], 0.0

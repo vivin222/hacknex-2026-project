@@ -4,9 +4,15 @@ Member 3 — Udhayan — Backend/API Engineer
 LAP 2 — BACKEND ONLY.
 """
 
+import os
+os.environ.setdefault("OMP_NUM_THREADS", "2")
+os.environ.setdefault("OPENBLAS_NUM_THREADS", "2")
+os.environ.setdefault("MKL_NUM_THREADS", "2")
+os.environ.setdefault("VECLIB_MAXIMUM_THREADS", "2")
+os.environ.setdefault("NUMEXPR_NUM_THREADS", "2")
+
 import io
 import logging
-import os
 import sys
 import tempfile
 from pathlib import Path
