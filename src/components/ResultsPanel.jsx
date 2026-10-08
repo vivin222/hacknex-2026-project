@@ -229,7 +229,7 @@ export default function ResultsPanel({
   const renderHighlightedTranscript = () => {
     if (!searchQuery.trim() || textMatches.length === 0) {
       return (
-        <div className="whitespace-pre-wrap font-sans text-sm text-slate-100 leading-relaxed p-3 bg-[#050508] border border-red-950/70 rounded-lg h-44 overflow-y-auto">
+        <div className="whitespace-pre-wrap font-sans text-sm text-slate-100 leading-relaxed p-1.5 bg-transparent h-48 overflow-y-auto">
           {editableText || <span className="text-neutral-500 italic">No text recognized.</span>}
         </div>
       );
@@ -263,7 +263,7 @@ export default function ResultsPanel({
     }
 
     return (
-      <div className="whitespace-pre-wrap font-sans text-sm text-slate-100 leading-relaxed p-3 bg-[#050508] border border-amber-900/60 rounded-lg h-44 overflow-y-auto">
+      <div className="whitespace-pre-wrap font-sans text-sm text-slate-100 leading-relaxed p-1.5 bg-transparent h-48 overflow-y-auto">
         {elements}
       </div>
     );
@@ -698,18 +698,10 @@ export default function ResultsPanel({
                 </div>
               </div>
 
-              {/* Document Textarea / Highlighted Reading View */}
-              <div className="p-3.5 border-b border-neutral-800 bg-[#08080d]">
-                <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-[11px] font-mono uppercase tracking-wider text-slate-400 font-bold flex items-center gap-1.5">
-                    <span>Primary Transcribed Body</span>
-                    {transcriptViewMode === 'highlight' && (
-                      <span className="text-[10px] text-amber-400 font-normal">
-                        (Reading & Search View)
-                      </span>
-                    )}
-                  </span>
-                  {isEdited && transcriptViewMode === 'edit' && (
+              {/* Document Transcription Content (Directly inside content box, no separate "PRIMARY TRANSCRIBED" heading/box) */}
+              <div className="p-3 border-b border-neutral-800 bg-[#050508] relative">
+                {isEdited && transcriptViewMode === 'edit' && (
+                  <div className="flex justify-end mb-1">
                     <button
                       type="button"
                       onClick={handleResetText}
@@ -717,14 +709,14 @@ export default function ResultsPanel({
                     >
                       <RotateCcw className="w-3 h-3" /> Reset original
                     </button>
-                  )}
-                </div>
+                  </div>
+                )}
 
                 {transcriptViewMode === 'edit' ? (
                   <textarea
                     value={editableText}
                     onChange={(e) => setEditableText(e.target.value)}
-                    className="w-full h-44 p-2.5 text-sm font-sans bg-[#050508] border border-neutral-800 rounded-lg focus:outline-none focus:ring-1 focus:ring-red-600 leading-relaxed resize-none text-slate-100 shadow-inner"
+                    className="w-full h-48 p-1.5 text-sm font-sans bg-transparent border-0 focus:outline-none focus:ring-0 leading-relaxed resize-none text-slate-100 placeholder-neutral-500"
                     placeholder="Extracted transcription text..."
                   />
                 ) : (
