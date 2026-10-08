@@ -163,56 +163,71 @@ export default function UploadPanel({
 
       {/* 2. DOMINANT CENTRAL HERO WITH RADIAL CONTRAST MASK */}
       <div className="relative z-10 text-center space-y-6 pt-6 sm:pt-14 pb-8">
-        {/* Radial Soft Contrast Mask behind Hero */}
-        <div className="absolute inset-0 pointer-events-none -z-10 bg-[radial-gradient(ellipse_75%_65%_at_50%_45%,rgba(5,5,8,0.96)_0%,rgba(5,5,8,0.72)_55%,transparent_100%)]" />
+        {/* Refined Radial Soft Contrast Mask behind Hero */}
+        <div className="absolute inset-0 pointer-events-none -z-10 bg-[radial-gradient(ellipse_80%_65%_at_50%_45%,rgba(5,5,8,0.98)_0%,rgba(5,5,8,0.76)_52%,rgba(5,5,8,0)_100%)]" />
 
-        {/* Brand Tag Badge */}
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-red-950/40 text-red-400 border border-red-500/30 text-xs font-mono font-medium shadow-[0_0_15px_rgba(239,68,68,0.2)]">
-          <span className="font-bold text-white">CRY NOVA</span>
-          <span className="text-red-500/50">•</span>
-          <span className="text-neutral-400">HNX26EPS04</span>
-          <span className="text-red-500/50">•</span>
-          <span className="text-red-400 font-semibold">Document Intelligence Lab</span>
+        {/* Brand Tag Badge & Static Technical Metadata (Entrance Stage 1) */}
+        <div className="animate-hero-badge flex flex-col items-center gap-2.5">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-red-950/40 text-red-400 border border-red-500/30 text-xs font-mono font-medium shadow-[0_0_18px_rgba(239,68,68,0.25)]">
+            <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+            <span className="font-bold text-white tracking-wide">CRY NOVA</span>
+            <span className="text-red-500/50">•</span>
+            <span className="text-neutral-400">HNX26EPS04</span>
+            <span className="text-red-500/50">•</span>
+            <span className="text-red-400 font-semibold">Document Intelligence Lab</span>
+          </div>
+
+          <div className="hidden sm:flex items-center gap-2.5 text-[10px] font-mono tracking-widest text-neutral-500 uppercase">
+            <span className="text-neutral-400">HNX26 / EPS04</span>
+            <span>•</span>
+            <span>DOCUMENT INTELLIGENCE LAB</span>
+            <span>•</span>
+            <span className="text-neutral-400">RAPIDOCR ONNX + FORENSIC STACK</span>
+          </div>
         </div>
 
-        {/* Central Dominant Headline */}
-        <h1 className="text-4xl sm:text-6xl md:text-7xl font-extrabold tracking-tight text-white drop-shadow-[0_0_40px_rgba(220,38,38,0.4)]">
+        {/* Central Dominant Headline (Entrance Stage 2) */}
+        <h1 className="animate-hero-title text-5xl sm:text-7xl md:text-8xl font-black tracking-tight text-white drop-shadow-[0_0_45px_rgba(220,38,38,0.45)]">
           CRY NOVA
         </h1>
 
-        {/* Subtitle */}
-        <div className="text-sm sm:text-base md:text-lg font-mono font-bold tracking-widest uppercase text-red-500">
+        {/* Subtitle (Entrance Stage 3) */}
+        <div className="animate-hero-subtitle text-xs sm:text-sm md:text-base font-mono font-bold tracking-[0.22em] uppercase text-red-500">
           EXTREME BAD-HANDWRITING DIGITIZING STACK
         </div>
 
-        {/* Tagline Manifesto */}
-        <p className="text-base sm:text-lg font-serif-doc italic text-neutral-400 max-w-2xl mx-auto">
+        {/* Tagline Manifesto (Entrance Stage 4) */}
+        <p className="animate-hero-tagline text-base sm:text-lg font-serif-doc italic text-neutral-400 max-w-2xl mx-auto leading-relaxed">
           "Turn difficult handwriting into evidence-linked intelligence."
         </p>
 
-        {/* Primary & Secondary Hero CTAs */}
-        <div className="flex flex-wrap items-center justify-center gap-4 pt-2">
+        {/* Primary & Secondary Hero CTAs (Entrance Stage 5) */}
+        <div className="animate-hero-cta flex flex-wrap items-center justify-center gap-4 pt-2">
+          {/* Primary CTA: ENTER OCR */}
           <button
             type="button"
             onClick={handleEnterOcr}
-            className="px-8 py-3.5 rounded-xl font-bold text-sm tracking-wide bg-gradient-to-r from-[#DC2626] to-[#EF4444] hover:from-[#B91C1C] hover:to-[#DC2626] text-white shadow-[0_0_25px_rgba(239,68,68,0.5)] hover:shadow-[0_0_35px_rgba(239,68,68,0.7)] transition-all flex items-center gap-2 transform hover:-translate-y-0.5 cursor-pointer"
+            aria-label="Enter OCR Digitization Workspace"
+            className="animate-crimson-pulse px-8 py-4 rounded-xl font-bold text-sm tracking-wider uppercase bg-gradient-to-r from-[#DC2626] via-[#EF4444] to-[#B91C1C] hover:from-[#B91C1C] hover:to-[#DC2626] text-white shadow-[0_0_30px_rgba(239,68,68,0.55)] hover:shadow-[0_0_48px_rgba(239,68,68,0.85)] transition-all duration-200 transform hover:scale-[1.03] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#050508] cursor-pointer flex items-center gap-2.5"
           >
             <Play className="w-4 h-4 fill-white" />
             <span>ENTER OCR</span>
           </button>
 
+          {/* Secondary CTA: EXPLORE INTELLIGENCE */}
           <button
             type="button"
             onClick={handleExploreIntelligence}
-            className="px-8 py-3.5 rounded-xl font-semibold text-sm tracking-wide bg-neutral-900/80 hover:bg-neutral-800 text-neutral-200 hover:text-white border border-neutral-700/80 hover:border-red-500/60 shadow-lg backdrop-blur-md transition-all flex items-center gap-2 transform hover:-translate-y-0.5 cursor-pointer"
+            aria-label="Explore Document Intelligence Sample"
+            className="px-7 py-4 rounded-xl font-semibold text-sm tracking-wide bg-neutral-900/80 hover:bg-neutral-800 text-neutral-300 hover:text-white border border-neutral-700/80 hover:border-red-500/60 shadow-md hover:shadow-[0_0_20px_rgba(220,38,38,0.25)] backdrop-blur-md transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#050508] cursor-pointer flex items-center gap-2"
           >
             <Sparkles className="w-4 h-4 text-red-400" />
             <span>EXPLORE INTELLIGENCE</span>
           </button>
         </div>
 
-        {/* Concept Visual Architecture Pillars */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 pt-6 max-w-3xl mx-auto text-left">
+        {/* Concept Visual Architecture Pillars (Entrance Stage 6) */}
+        <div className="animate-hero-pillars grid grid-cols-1 sm:grid-cols-3 gap-3.5 pt-6 max-w-3xl mx-auto text-left">
           <div className="p-4 rounded-xl bg-neutral-950/70 border border-neutral-800 flex items-start gap-3 shadow-xs hover:border-red-500/40 transition-colors backdrop-blur-sm">
             <span className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#DC2626] to-[#B91C1C] text-white font-mono text-xs flex items-center justify-center shrink-0 mt-0.5 font-bold shadow-2xs">
               01

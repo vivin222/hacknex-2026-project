@@ -4,16 +4,14 @@ import React, { useEffect, useRef } from 'react';
  * CharacterFieldCanvas Component
  * Astra-style spatial FIELD OF INDIVIDUAL CHARACTERS for CRY NOVA homepage.
  *
- * Requirements Met:
- * - Individual characters (A-Z, a-z, 0-9, symbols, mathematical/technical symbols).
- * - Hundreds of characters distributed across depth layers.
- * - Crimson/red glow accents matching the CRY NOVA visual identity.
- * - Stable original anchor positions with ambient orbital micro-motion.
- * - Inverse-distance cursor repulsion physics with velocity damping and return spring.
- * - No jitter, snapping, or permanent displacement.
- * - Radial soft contrast mask around central hero.
- * - Pure Canvas 60fps rendering, pointer-events-none.
- * - Complete teardown and memory cleanup on unmount.
+ * Final Polish Pass:
+ * - 3 distinct depth layers (distant faint, medium chalk/crimson, foreground bright with glow).
+ * - Subtle pointer parallax response on depth layers.
+ * - Cursor "Intelligence" effect: soft crimson interaction halo + proximity brightness boost.
+ * - Stable original anchors with smooth inverse-distance repulsion, return spring, and damping.
+ * - Continuous atmospheric radial contrast mask for central hero readability.
+ * - Respects prefers-reduced-motion.
+ * - Pure HTML5 Canvas 60 FPS, unmounted and completely cleaned up outside homepage.
  */
 
 const GLYPH_SET = [
@@ -46,6 +44,9 @@ export default function CharacterFieldCanvas() {
     let width = (canvas.width = window.innerWidth);
     let height = (canvas.height = window.innerHeight);
 
+    // Reduced motion preference
+    const isReducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
     // Mouse tracking state
     const mouse = {
       x: -9999,
@@ -53,6 +54,10 @@ export default function CharacterFieldCanvas() {
       active: false,
       lastMoveTime: 0,
     };
+
+    // Parallax smoothing state
+    let curParallaxX = 0;
+    let curParallaxY = 0;
 
     // Deterministic PRNG for stable, repeatable anchor generation
     let seed = 9876543;
@@ -63,14 +68,14 @@ export default function CharacterFieldCanvas() {
 
     // Responsive grid configuration based on viewport width
     const getGridConfig = (w) => {
-      if (w >= 1200) {
+      if (w >= 1280) {
         return { cols: 17, rows: 11 }; // ~187 glyphs on desktop
-      } else if (w >= 900) {
+      } else if (w >= 1024) {
         return { cols: 14, rows: 9 }; // ~126 glyphs on laptop
-      } else if (w >= 600) {
+      } else if (w >= 640) {
         return { cols: 10, rows: 8 }; // ~80 glyphs on tablet
       } else {
-        return { cols: 7, rows: 7 }; // ~49 glyphs on mobile
+        return { cols: 6, rows: 7 }; // ~42 glyphs on mobile
       }
     };
 
@@ -99,41 +104,50 @@ export default function CharacterFieldCanvas() {
           let baseOpacity = 0.2;
           let colorType = 'distant';
           let hasGlow = false;
+          let parallaxRatio = 0.5;
 
-          if (layerRoll < 0.45) {
+          if (layerRoll < 0.46) {
             // Layer 0: Distant faint characters
-            depth = 0.38 + prng() * 0.18; // 0.38 - 0.56
-            fontSize = Math.round(11 + prng() * 3); // 11 - 14px
-            baseOpacity = 0.12 + prng() * 0.14; // 0.12 - 0.26
+            depth = 0.35 + prng() * 0.17; // 0.35 - 0.52
+            fontSize = Math.round(10 + prng() * 3); // 10 - 13px
+            baseOpacity = 0.09 + prng() * 0.11; // 0.09 - 0.20
             colorType = 'distant';
+            parallaxRatio = 0.35;
           } else if (layerRoll < 0.80) {
             // Layer 1: Medium characters
-            depth = 0.68 + prng() * 0.18; // 0.68 - 0.86
-            fontSize = Math.round(15 + prng() * 4); // 15 - 19px
-            baseOpacity = 0.32 + prng() * 0.22; // 0.32 - 0.54
-            colorType = prng() > 0.4 ? 'medium-chalk' : 'medium-crimson';
+            depth = 0.65 + prng() * 0.20; // 0.65 - 0.85
+            fontSize = Math.round(14 + prng() * 4); // 14 - 18px
+            baseOpacity = 0.28 + prng() * 0.20; // 0.28 - 0.48
+            colorType = prng() > 0.45 ? 'medium-chalk' : 'medium-crimson';
+            parallaxRatio = 0.72;
           } else {
             // Layer 2: Foreground brighter characters with crimson glow
-            depth = 0.98 + prng() * 0.22; // 0.98 - 1.20
+            depth = 0.98 + prng() * 0.26; // 0.98 - 1.24
             fontSize = Math.round(20 + prng() * 6); // 20 - 26px
-            baseOpacity = 0.65 + prng() * 0.3; // 0.65 - 0.95
-            colorType = prng() > 0.35 ? 'bright-crimson' : 'bright-white';
-            hasGlow = prng() > 0.45; // glowing crimson accent
+            baseOpacity = 0.70 + prng() * 0.25; // 0.70 - 0.95
+            colorType = prng() > 0.4 ? 'bright-crimson' : 'bright-white';
+            hasGlow = prng() > 0.45;
+            parallaxRatio = 1.15;
           }
 
-          // Subtle ambient orbital micro-motion parameters
-          const orbitRadiusX = (8 + prng() * 14) * (depth * 0.9);
-          const orbitRadiusY = (8 + prng() * 14) * (depth * 0.9);
-          const orbitSpeedX = 0.0007 + prng() * 0.0012;
-          const orbitSpeedY = 0.0006 + prng() * 0.0011;
+          // Subtle ambient orbital micro-motion parameters (depth-dependent speeds)
+          const speedMultiplier = 0.7 + depth * 0.5;
+          const orbitRadiusX = (7 + prng() * 12) * (depth * 0.85);
+          const orbitRadiusY = (7 + prng() * 12) * (depth * 0.85);
+          const orbitSpeedX = (0.0006 + prng() * 0.0009) * speedMultiplier;
+          const orbitSpeedY = (0.0005 + prng() * 0.0008) * speedMultiplier;
           const orbitPhaseX = prng() * Math.PI * 2;
           const orbitPhaseY = prng() * Math.PI * 2;
 
           // Subtle micro-rotation parameters
-          const baseRot = (prng() - 0.5) * 0.25; // -0.125 to +0.125 rad (~7 deg)
-          const maxRot = 0.06 + prng() * 0.1;
-          const rotSpeed = 0.0008 + prng() * 0.0012;
+          const baseRot = (prng() - 0.5) * 0.24; // ~-7 to +7 deg
+          const maxRot = 0.05 + prng() * 0.08;
+          const rotSpeed = 0.0007 + prng() * 0.0011;
           const rotPhase = prng() * Math.PI * 2;
+
+          // Subtle opacity breathing / twinkle
+          const breathSpeed = 0.001 + prng() * 0.0018;
+          const breathPhase = prng() * Math.PI * 2;
 
           list.push({
             char,
@@ -148,6 +162,7 @@ export default function CharacterFieldCanvas() {
             baseOpacity,
             colorType,
             hasGlow,
+            parallaxRatio,
             orbitRadiusX,
             orbitRadiusY,
             orbitSpeedX,
@@ -160,6 +175,8 @@ export default function CharacterFieldCanvas() {
             maxRot,
             rotSpeed,
             rotPhase,
+            breathSpeed,
+            breathPhase,
           });
         }
       }
@@ -230,49 +247,53 @@ export default function CharacterFieldCanvas() {
 
       ctx.clearRect(0, 0, width, height);
 
-      // Hero center position for radial contrast mask
+      // Hero center position for atmospheric radial contrast mask
       const heroCenterX = width * 0.5;
-      const heroCenterY = Math.min(height * 0.38, 350);
-      const maskInnerRadius = 150;
-      const maskOuterRadius = 390;
+      const heroCenterY = Math.min(height * 0.36, 340);
 
-      // Subtle ambient vignette in canvas background
-      const ambientGrad = ctx.createRadialGradient(
-        heroCenterX,
-        heroCenterY,
-        0,
-        heroCenterX,
-        heroCenterY,
-        Math.max(width, height) * 0.7
-      );
-      ambientGrad.addColorStop(0, 'rgba(5, 5, 8, 0.4)');
-      ambientGrad.addColorStop(0.5, 'rgba(5, 5, 8, 0.1)');
-      ambientGrad.addColorStop(1, 'rgba(5, 5, 8, 0.0)');
-      ctx.fillStyle = ambientGrad;
-      ctx.fillRect(0, 0, width, height);
+      // Parallax smoothing
+      const targetParallaxX = mouse.active && !isReducedMotion ? (mouse.x - width * 0.5) / (width * 0.5) : 0;
+      const targetParallaxY = mouse.active && !isReducedMotion ? (mouse.y - height * 0.5) / (height * 0.5) : 0;
+      curParallaxX += (targetParallaxX - curParallaxX) * 0.04;
+      curParallaxY += (targetParallaxY - curParallaxY) * 0.04;
+
+      // Cursor "Intelligence" Effect: Subtle crimson interaction halo following pointer
+      if (mouse.active && !isReducedMotion) {
+        const haloGrad = ctx.createRadialGradient(mouse.x, mouse.y, 0, mouse.x, mouse.y, 160);
+        haloGrad.addColorStop(0, 'rgba(239, 68, 68, 0.085)');
+        haloGrad.addColorStop(0.5, 'rgba(220, 38, 38, 0.03)');
+        haloGrad.addColorStop(1, 'rgba(220, 38, 38, 0.0)');
+        ctx.fillStyle = haloGrad;
+        ctx.beginPath();
+        ctx.arc(mouse.x, mouse.y, 160, 0, Math.PI * 2);
+        ctx.fill();
+      }
 
       const glyphCount = glyphs.length;
       for (let i = 0; i < glyphCount; i++) {
         const g = glyphs[i];
 
-        // 1. Target anchor with ambient micro-orbital motion
-        const ambientX = Math.cos(time * g.orbitSpeedX + g.orbitPhaseX) * g.orbitRadiusX;
-        const ambientY = Math.sin(time * g.orbitSpeedY + g.orbitPhaseY) * g.orbitRadiusY;
-        const targetX = g.anchorX + ambientX;
-        const targetY = g.anchorY + ambientY;
-        const targetRot = g.baseRot + Math.sin(time * g.rotSpeed + g.rotPhase) * g.maxRot;
+        // 1. Ambient micro-orbital motion + subtle pointer parallax
+        const ambientX = isReducedMotion ? 0 : Math.cos(time * g.orbitSpeedX + g.orbitPhaseX) * g.orbitRadiusX;
+        const ambientY = isReducedMotion ? 0 : Math.sin(time * g.orbitSpeedY + g.orbitPhaseY) * g.orbitRadiusY;
+        const parallaxShiftX = isReducedMotion ? 0 : curParallaxX * 15 * g.parallaxRatio;
+        const parallaxShiftY = isReducedMotion ? 0 : curParallaxY * 15 * g.parallaxRatio;
 
-        // 2. Cursor repulsion physics
-        if (mouse.active) {
+        const targetX = g.anchorX + ambientX + parallaxShiftX;
+        const targetY = g.anchorY + ambientY + parallaxShiftY;
+        const targetRot = isReducedMotion ? g.baseRot : g.baseRot + Math.sin(time * g.rotSpeed + g.rotPhase) * g.maxRot;
+
+        // 2. Cursor repulsion physics & proximity brightness boost
+        let proximityHighlight = 0;
+        if (mouse.active && !isReducedMotion) {
           const dx = g.currentX - mouse.x;
           const dy = g.currentY - mouse.y;
           const dist = Math.hypot(dx, dy);
-          const repulsionRadius = 150 * g.depth; // 60px to 180px depending on depth
+          const repulsionRadius = 150 * g.depth; // 55px to 185px depending on depth
 
           if (dist < repulsionRadius && dist > 0.05) {
             const normX = dx / dist;
             const normY = dy / dist;
-            // Smooth inverse-distance style force falloff
             const proximity = (repulsionRadius - dist) / repulsionRadius;
             const force = Math.pow(proximity, 1.6) * (13.5 * g.depth);
 
@@ -280,6 +301,7 @@ export default function CharacterFieldCanvas() {
             g.vy += normY * force;
             // Micro-torque rotation induced by mouse push
             g.vRot += (normX * 0.025 - normY * 0.015) * proximity;
+            proximityHighlight = proximity * 0.35;
           }
         }
 
@@ -301,46 +323,50 @@ export default function CharacterFieldCanvas() {
         g.vRot *= 0.86;
         g.currentRot += g.vRot;
 
-        // 6. Radial hero contrast mask (dim characters behind central hero)
-        const dxHero = g.currentX - heroCenterX;
-        const dyHero = (g.currentY - heroCenterY) * 1.35; // slightly squished ellipse
-        const distHero = Math.hypot(dxHero, dyHero);
+        // 6. Atmospheric radial hero contrast mask
+        const dxHeroNorm = (g.currentX - heroCenterX) / 440;
+        const dyHeroNorm = (g.currentY - heroCenterY) / 280;
+        const distHeroNorm = Math.hypot(dxHeroNorm, dyHeroNorm);
 
         let heroMask = 1.0;
-        if (distHero < maskInnerRadius) {
-          heroMask = 0.05; // almost invisible directly behind "CRY NOVA"
-        } else if (distHero < maskOuterRadius) {
-          heroMask = 0.05 + 0.95 * Math.pow((distHero - maskInnerRadius) / (maskOuterRadius - maskInnerRadius), 1.6);
+        if (distHeroNorm < 0.42) {
+          heroMask = 0.035; // imperceptible whisper directly behind hero title
+        } else if (distHeroNorm < 1.0) {
+          const t = (distHeroNorm - 0.42) / 0.58;
+          const smooth = t * t * (3 - 2 * t); // smoothstep
+          heroMask = 0.035 + 0.965 * smooth;
         }
 
-        const renderOpacity = Math.max(0.01, Math.min(1.0, g.baseOpacity * heroMask));
+        // 7. Subtle opacity breathing + cursor proximity boost
+        const breath = isReducedMotion ? 0 : Math.sin(time * g.breathSpeed + g.breathPhase) * 0.07;
+        const effAlpha = Math.max(0.01, Math.min(1.0, (g.baseOpacity + breath + proximityHighlight) * heroMask));
 
         // Skip rendering if practically invisible
-        if (renderOpacity < 0.02) continue;
+        if (effAlpha < 0.02) continue;
 
-        // 7. Choose fill color matching CRY NOVA crimson / technical identity
+        // 8. Choose fill color matching CRY NOVA crimson / technical identity
         let fillStyle = '';
         if (g.colorType === 'distant') {
-          fillStyle = `rgba(140, 50, 50, ${renderOpacity * 0.8})`;
+          fillStyle = `rgba(135, 45, 45, ${effAlpha * 0.75})`;
         } else if (g.colorType === 'medium-crimson') {
-          fillStyle = `rgba(220, 38, 38, ${renderOpacity})`;
+          fillStyle = `rgba(220, 38, 38, ${effAlpha})`;
         } else if (g.colorType === 'medium-chalk') {
-          fillStyle = `rgba(215, 210, 210, ${renderOpacity})`;
+          fillStyle = `rgba(220, 215, 215, ${effAlpha})`;
         } else if (g.colorType === 'bright-crimson') {
-          fillStyle = `rgba(239, 68, 68, ${renderOpacity})`;
+          fillStyle = `rgba(242, 60, 60, ${effAlpha})`;
         } else {
           // bright-white
-          fillStyle = `rgba(255, 255, 255, ${renderOpacity})`;
+          fillStyle = `rgba(255, 255, 255, ${effAlpha})`;
         }
 
-        // 8. Draw glyph with individual rotation and optional crimson glow
+        // 9. Draw glyph with individual rotation and optional crimson glow
         ctx.save();
         ctx.translate(g.currentX, g.currentY);
         ctx.rotate(g.currentRot);
 
         if (g.hasGlow && heroMask > 0.4) {
-          ctx.shadowColor = 'rgba(239, 68, 68, 0.7)';
-          ctx.shadowBlur = 10 * g.depth;
+          ctx.shadowColor = 'rgba(239, 68, 68, 0.75)';
+          ctx.shadowBlur = (9 + proximityHighlight * 12) * g.depth;
         }
 
         ctx.font = `${g.fontSize}px "JetBrains Mono", "Courier New", monospace`;
