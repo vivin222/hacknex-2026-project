@@ -201,26 +201,26 @@ export default function ImagePreview({
 
                   const isHovered = hoveredIndex === idx;
 
-                  let strokeColor = '#22c55e'; // Green for confident
-                  let fillColor = 'rgba(34, 197, 94, 0.05)';
+                  let strokeColor = '#2563EB'; // Primary Accent Blue for high-confidence
+                  let fillColor = 'rgba(37, 99, 235, 0.08)';
                   let strokeDash = undefined;
 
                   if (seg.is_crossed_out) {
-                    strokeColor = '#ef4444'; // Red for crossed-out
-                    fillColor = 'rgba(239, 68, 68, 0.15)';
+                    strokeColor = '#DC2626'; // Red only for strikethrough/retracted
+                    fillColor = 'rgba(220, 38, 38, 0.20)';
                   } else if (seg.is_margin_note) {
-                    strokeColor = '#06b6d4'; // Cyan for margin note
+                    strokeColor = '#06B6D4'; // Cyan for margin notes / AI layout
                     strokeDash = '6 3';
-                    fillColor = 'rgba(6, 182, 212, 0.08)';
+                    fillColor = 'rgba(6, 182, 212, 0.12)';
                   } else if (seg.uncertain || (seg.confidence && seg.confidence < 0.75)) {
-                    strokeColor = '#f59e0b'; // Amber for uncertain
+                    strokeColor = '#D97706'; // Amber for human review / low confidence
                     strokeDash = '5 3';
-                    fillColor = 'rgba(245, 158, 11, 0.15)';
+                    fillColor = 'rgba(217, 119, 6, 0.18)';
                   }
 
                   if (isTargeted) {
-                    strokeColor = '#eab308'; // Highlight gold
-                    fillColor = 'rgba(234, 179, 8, 0.25)';
+                    strokeColor = '#06B6D4'; // Highlight Cyan target
+                    fillColor = 'rgba(6, 182, 212, 0.35)';
                   }
 
                   return (
@@ -308,17 +308,21 @@ export default function ImagePreview({
 
         {/* BBox Legend Pill */}
         {showOverlays && segments.length > 0 && (
-          <div className="absolute bottom-3 right-3 bg-slate-900/90 border border-slate-800 text-[10px] font-mono px-2.5 py-1 rounded-full shadow-lg flex items-center gap-2.5 text-slate-400">
+          <div className="absolute bottom-3 right-3 bg-slate-900/90 border border-slate-800 text-[10px] font-mono px-2.5 py-1 rounded-full shadow-lg flex items-center gap-2.5 text-slate-300">
             <span className="flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-emerald-400" />
+              <span className="w-2 h-2 rounded-full bg-blue-500" />
               <span>High (✓)</span>
             </span>
             <span className="flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-amber-400" />
+              <span className="w-2 h-2 rounded-full bg-cyan-400" />
+              <span>AI/Margin</span>
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="w-2 h-2 rounded-full bg-amber-500" />
               <span>Review (⚠)</span>
             </span>
             <span className="flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-rose-400" />
+              <span className="w-2 h-2 rounded-full bg-rose-500" />
               <span>Struck (✕)</span>
             </span>
           </div>

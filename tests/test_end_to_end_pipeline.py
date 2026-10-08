@@ -305,3 +305,21 @@ def test_multi_pass_processing_info():
     assert "multiPassInfo" in proc_info
 
 
+def test_day_date_revision_conflict_detection():
+    """Verify that detect_conflicts captures day/date revisions (e.g. Friday crossed out -> Monday active)."""
+    try:
+        from backend.services.ai_service import detect_conflicts
+    except ImportError:
+        from services.ai_service import detect_conflicts
+
+    text = "Appointment scheduled for Monday at 10 AM"
+    crossed_out = [{"text": "Friday", "originalText": "Friday"}]
+    segments = [{"text": "Monday", "confidence": 0.92, "bbox": [10, 10, 80, 40]}]
+    conflicts = detect_conflicts(text, crossed_out, segments)
+    assert len(conflicts) > 0
+    assert "Friday" in conflicts[0]["struck_evidence"]
+    assert "Monday" in conflicts[0]["active_evidence"]
+    assert conflicts[0]["type"] == "Day/Date Revision / Strikethrough"
+
+
+

@@ -11,8 +11,12 @@
  * Every upload sends actual file bytes to the backend and returns real analysis.
  */
 
+const envBaseUrl = typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_BASE_URL;
+const isLocal = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+const defaultProdUrl = 'https://crynova-hacknex.onrender.com';
+
 export const API_CONFIG = {
-  BASE_URL: typeof window !== 'undefined' ? '' : 'http://127.0.0.1:8000',
+  BASE_URL: envBaseUrl ? envBaseUrl.replace(/\/+$/, '') : (isLocal ? '' : defaultProdUrl),
   PROCESS_ENDPOINT: '/analyze',
   HEALTH_ENDPOINT: '/api/health',
   TIMEOUT_MS: 45000,
@@ -51,14 +55,15 @@ export const SAMPLE_PRESETS = [
 
 /**
  * Check if FastAPI backend is active and responsive.
- * @returns {Promise<{ online: boolean, service?: string, error?: string }>}
+ * @returns {Promise<{ online: boolean, service?: string, hostLabel?: string, error?: string }>}
  */
 export async function checkBackendHealth() {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 3000);
+  const timeout = setTimeout(() => controller.abort(), 4000);
 
+  const targetUrl = `${API_CONFIG.BASE_URL}${API_CONFIG.HEALTH_ENDPOINT}`;
   try {
-    const res = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.HEALTH_ENDPOINT}`, {
+    const res = await fetch(targetUrl, {
       method: 'GET',
       signal: controller.signal,
     });
@@ -66,7 +71,10 @@ export async function checkBackendHealth() {
 
     if (res.ok) {
       const data = await res.json();
-      return { online: true, service: data.service || 'cry-nova-backend' };
+      const hostLabel = API_CONFIG.BASE_URL
+        ? (API_CONFIG.BASE_URL.includes('onrender.com') ? 'Render Cloud' : API_CONFIG.BASE_URL)
+        : (isLocal ? 'Local (:8000)' : 'Render Cloud');
+      return { online: true, service: data.service || 'cry-nova-backend', hostLabel };
     }
     return { online: false, error: `HTTP ${res.status}: ${res.statusText}` };
   } catch (err) {

@@ -19,6 +19,8 @@ import UncertaintyPanel from './UncertaintyPanel';
 import MarginNotes from './MarginNotes';
 import CrossedOutPanel from './CrossedOutPanel';
 import IntelligencePanel from './IntelligencePanel';
+import IntelligenceDashboard from './IntelligenceDashboard';
+import AiChatPanel from './AiChatPanel';
 
 /**
  * ResultsPanel Component
@@ -42,6 +44,7 @@ export default function ResultsPanel({
   const [hoveredBbox, setHoveredBbox] = useState(null);
   const [showRawOcr, setShowRawOcr] = useState(false);
   const [activeTab, setActiveTab] = useState('uncertainty'); // 'uncertainty' | 'marginalia' | 'raw'
+  const [rightViewMode, setRightViewMode] = useState('assistant'); // 'assistant' | 'editor'
 
   const wordCount = editableText.trim() ? editableText.trim().split(/\s+/).length : 0;
   const charCount = editableText.length;
@@ -145,16 +148,19 @@ export default function ResultsPanel({
         </div>
       </div>
 
-      {/* MAIN SIDE-BY-SIDE INSPECTION LAYOUT (Phase 5 & Phase 9) */}
+      {/* COMPACT REAL INTELLIGENCE METRICS DASHBOARD (Phase 12) */}
+      <IntelligenceDashboard resultData={resultData} />
+
+      {/* MAIN SIDE-BY-SIDE INSPECTION LAYOUT (Phase 4, 5, 8 & 9) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
         {/* LEFT COLUMN: ORIGINAL IMAGE */}
         <div className="flex flex-col h-full min-h-[480px]">
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-sm font-semibold tracking-wide uppercase text-slate-300 flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-indigo-400" />
+              <span className="w-2 h-2 rounded-full bg-blue-500" />
               Original Handwriting Source
             </h3>
-            <span className="text-[11px] font-mono text-slate-500">
+            <span className="text-[11px] font-mono text-slate-400">
               Unaltered Reference Image
             </span>
           </div>
@@ -177,7 +183,7 @@ export default function ResultsPanel({
             <div className="mt-3 p-3 bg-slate-900/70 border border-slate-800/80 rounded-xl text-xs space-y-2">
               <div className="flex items-center justify-between font-mono text-[11px] text-slate-400">
                 <span className="flex items-center gap-1.5 text-slate-300">
-                  <Sliders className="w-3 h-3 text-indigo-400" />
+                  <Sliders className="w-3 h-3 text-cyan-400" />
                   Engine Preprocessing:
                 </span>
                 <span className="text-slate-500">
@@ -196,13 +202,13 @@ export default function ResultsPanel({
               </div>
               {resultData.processingInfo.multiPassInfo && (
                 <div className="pt-2 border-t border-slate-800/60 flex items-center justify-between text-[11px] font-mono">
-                  <span className="text-emerald-400">
+                  <span className="text-cyan-400 font-semibold">
                     Multi-Pass HTR ({resultData.processingInfo.multiPassInfo.passes_evaluated || 3} variants)
                   </span>
                   <span className="text-slate-300">
-                    Selected: <span className="text-indigo-300 font-semibold">{resultData.processingInfo.multiPassInfo.selected_pass}</span>
+                    Selected: <span className="text-blue-400 font-semibold">{resultData.processingInfo.multiPassInfo.selected_pass}</span>
                     {resultData.processingInfo.multiPassInfo.confidence_gain > 0 && (
-                      <span className="text-emerald-400 ml-1">
+                      <span className="text-cyan-300 ml-1">
                         (+{(resultData.processingInfo.multiPassInfo.confidence_gain * 100).toFixed(1)}% conf)
                       </span>
                     )}
@@ -213,47 +219,90 @@ export default function ResultsPanel({
           )}
         </div>
 
-        {/* RIGHT COLUMN: EDITABLE TRANSCRIPTION */}
+        {/* RIGHT COLUMN: AI ASSISTANT OR CLEAN DOCUMENT EDITOR */}
         <div className="flex flex-col h-full min-h-[480px]">
+          {/* View Mode Toggle Header */}
           <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-semibold tracking-wide uppercase text-slate-300 flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-400" />
-              Clean Editable Transcription
-            </h3>
+            <div className="flex items-center gap-1 p-1 bg-slate-900 border border-slate-800 rounded-lg">
+              <button
+                type="button"
+                onClick={() => setRightViewMode('assistant')}
+                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded text-xs font-semibold transition-all ${
+                  rightViewMode === 'assistant'
+                    ? 'bg-cyan-600 text-white shadow-md shadow-cyan-600/20'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <Sparkles className="w-3.5 h-3.5 text-cyan-200" />
+                <span>Instant AI Assistant</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setRightViewMode('editor')}
+                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded text-xs font-semibold transition-all ${
+                  rightViewMode === 'editor'
+                    ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <FileText className="w-3.5 h-3.5" />
+                <span>Document Editor</span>
+              </button>
+            </div>
+
             <div className="flex items-center gap-2 text-[11px] font-mono text-slate-400">
-              <span>{wordCount} words</span>
-              <span>•</span>
-              <span>{charCount} chars</span>
-              {isEdited && (
-                <span className="text-amber-400 bg-amber-950/60 px-1.5 py-0.5 rounded border border-amber-800/40">
-                  Modified
+              {rightViewMode === 'editor' ? (
+                <>
+                  <span>{wordCount} words</span>
+                  <span>•</span>
+                  <span>{charCount} chars</span>
+                  {isEdited && (
+                    <span className="text-amber-400 bg-amber-950/60 px-1.5 py-0.5 rounded border border-amber-800/40">
+                      Modified
+                    </span>
+                  )}
+                </>
+              ) : (
+                <span className="text-cyan-400 flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+                  Grounded Intelligence
                 </span>
               )}
             </div>
           </div>
 
-          {/* Document Editor Card */}
-          <div className="flex-1 flex flex-col bg-slate-900/90 border border-slate-800 rounded-xl overflow-hidden shadow-xl document-paper">
-            {/* Document Editor Toolbar */}
-            <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 bg-slate-900 border-b border-slate-800">
-              <div className="flex items-center gap-2">
-                <FileText className="w-4 h-4 text-emerald-400" />
-                <span className="text-xs font-medium text-slate-200">
-                  Document Output
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setShowRawOcr(!showRawOcr)}
-                  className={`text-[11px] font-mono px-2 py-0.5 rounded transition-colors ${
-                    showRawOcr
-                      ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30'
-                      : 'text-slate-400 hover:text-slate-200 bg-slate-800/60'
-                  }`}
-                  title="Toggle raw uncorrected OCR output"
-                >
-                  {showRawOcr ? 'Hide Raw OCR' : 'View Raw OCR'}
-                </button>
-              </div>
+          {rightViewMode === 'assistant' ? (
+            /* Mode 1: Instant AI Assistant Q&A Panel */
+            <div className="flex-1 flex flex-col min-h-[460px]">
+              <AiChatPanel
+                resultData={resultData}
+                onSelectBbox={(bbox) => setSelectedBbox(bbox)}
+              />
+            </div>
+          ) : (
+            /* Mode 2: Clean Document Editor Card */
+            <div className="flex-1 flex flex-col bg-slate-900/90 border border-slate-800 rounded-xl overflow-hidden shadow-xl document-paper">
+              {/* Document Editor Toolbar */}
+              <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 bg-slate-900 border-b border-slate-800">
+                <div className="flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-blue-400" />
+                  <span className="text-xs font-medium text-slate-200">
+                    Document Output
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setShowRawOcr(!showRawOcr)}
+                    className={`text-[11px] font-mono px-2 py-0.5 rounded transition-colors ${
+                      showRawOcr
+                        ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30'
+                        : 'text-slate-400 hover:text-slate-200 bg-slate-800/60'
+                    }`}
+                    title="Toggle raw uncorrected OCR output"
+                  >
+                    {showRawOcr ? 'Hide Raw OCR' : 'View Raw OCR'}
+                  </button>
+                </div>
 
               {/* Action Buttons */}
               <div className="flex items-center gap-1.5">
@@ -389,8 +438,9 @@ export default function ResultsPanel({
               </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
+    </div>
 
       {/* SEMANTIC INTELLIGENCE, ENTITIES, PROVENANCE & CONFLICT DETECTION */}
       <IntelligencePanel

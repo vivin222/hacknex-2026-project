@@ -60,6 +60,7 @@ except ImportError:
             if c < 0.50: return "critical"
             return "needs_review"
 
+AI_IMPORT_ERROR: Optional[str] = None
 try:
     from src.pipeline import process_handwriting
     from src.models import PipelineConfig
@@ -67,6 +68,7 @@ try:
     logger.info("Vivin AI Pipeline (ai/src/pipeline.py) successfully connected.")
 except Exception as e:
     AI_PIPELINE_AVAILABLE = False
+    AI_IMPORT_ERROR = f"{type(e).__name__}: {e}"
     process_handwriting = None  # type: ignore
     PipelineConfig = None  # type: ignore
     logger.error(f"Failed to load Vivin AI pipeline from ai/src/pipeline.py: {e}")
@@ -243,6 +245,8 @@ def detect_conflicts(
 
             # Look for dosages in struck text
             struck_dose = re.search(r"\b(\d+\s*(?:mg|g|mcg|ml)\s*(?:OD|BD|TDS|QDS|stat)?)\b", struck_text, re.IGNORECASE)
+            day_match = re.search(r"\b(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\b", struck_text, re.IGNORECASE)
+
             if struck_dose:
                 # Compare with active text
                 active_dose = re.search(r"\b(\d+\s*(?:mg|g|mcg|ml)\s*(?:OD|BD|TDS|QDS|stat)?)\b", text, re.IGNORECASE)
@@ -264,6 +268,39 @@ def detect_conflicts(
                         "description": f"Retracted statement: '{struck_text}' marked as deleted with pen strikethrough.",
                         "struck_evidence": struck_text,
                     })
+            elif day_match:
+                struck_day = day_match.group(1).capitalize()
+                active_day = None
+                for d_m in re.finditer(r"\b(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\b", text, re.IGNORECASE):
+                    cand = d_m.group(1).capitalize()
+                    if cand.lower() != struck_day.lower():
+                        active_day = cand
+                        break
+                if active_day:
+                    conflicts.append({
+                        "type": "Day/Date Revision / Strikethrough",
+                        "severity": "medium",
+                        "description": (
+                            f"Strikethrough revision detected: '{struck_day}' was struck out "
+                            f"and replaced by active day '{active_day}'."
+                        ),
+                        "struck_evidence": struck_text,
+                        "active_evidence": active_day,
+                    })
+                else:
+                    conflicts.append({
+                        "type": "Pen Strike-Out Deletion",
+                        "severity": "low",
+                        "description": f"Retracted statement: '{struck_text}' marked as deleted with pen strikethrough.",
+                        "struck_evidence": struck_text,
+                    })
+            else:
+                conflicts.append({
+                    "type": "Pen Strike-Out Deletion",
+                    "severity": "low",
+                    "description": f"Retracted statement: '{struck_text}' marked as deleted with pen strikethrough.",
+                    "struck_evidence": struck_text,
+                })
 
     # Check for contradictory dates if multiple conflicting follow-up days exist
     return conflicts
@@ -282,13 +319,13 @@ def process_image(image_path: str, filename: Optional[str] = None) -> Dict[str, 
     disp_filename = filename or os.path.basename(image_path)
 
     if not is_ai_connected():
-        logger.error("AI pipeline is not available in environment.")
+        logger.error(f"AI pipeline is not available in environment: {AI_IMPORT_ERROR}")
         return {
             "request_id": req_id,
             "filename": disp_filename,
             "success": False,
             "error": "AI pipeline is not available in environment.",
-            "detail": "Could not import ai/src/pipeline.py.",
+            "detail": f"Could not import ai/src/pipeline.py: {AI_IMPORT_ERROR}",
         }
 
     # Execute Vivin's core AI pipeline on the real image file

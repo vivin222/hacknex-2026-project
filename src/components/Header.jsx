@@ -49,13 +49,11 @@ export default function Header() {
 
         {/* Workflow breadcrumb on medium+ displays */}
         <div className="hidden lg:flex items-center gap-2 text-xs font-mono text-slate-400 bg-slate-900/80 px-3 py-1.5 rounded-full border border-slate-800">
-          <span className="text-indigo-400 font-semibold">Upload</span>
+          <span className="text-cyan-400 font-semibold">Physical Paper</span>
           <span className="text-slate-600">→</span>
-          <span>Analyze</span>
+          <span className="text-blue-400 font-semibold">Digital Understanding</span>
           <span className="text-slate-600">→</span>
-          <span>Edit</span>
-          <span className="text-slate-600">→</span>
-          <span>Export</span>
+          <span className="text-cyan-400 font-semibold">AI Intelligence</span>
         </div>
 
         {/* Architecture & Live Telemetry Badge */}
@@ -63,20 +61,22 @@ export default function Header() {
           {backendStatus.online ? (
             <div
               className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-mono bg-emerald-950/60 border border-emerald-500/30 text-emerald-300 shadow-sm"
-              title="FastAPI backend running on http://localhost:8000"
+              title="FastAPI backend connected"
             >
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
               <span>Backend:</span>
-              <span className="font-semibold text-emerald-200">Online (:8000)</span>
+              <span className="font-semibold text-emerald-200">
+                {backendStatus.hostLabel || 'Online'}
+              </span>
             </div>
           ) : (
             <div
               className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-mono bg-slate-900 border border-slate-800 text-slate-300"
-              title="FastAPI backend offline; using isolated mock data pipeline"
+              title="Checking backend connection..."
             >
               <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-              <span>Engine:</span>
-              <span className="text-amber-300 font-medium">Mock Mode (Isolated)</span>
+              <span>Backend:</span>
+              <span className="text-amber-300 font-medium">Connecting...</span>
             </div>
           )}
         </div>
