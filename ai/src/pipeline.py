@@ -138,8 +138,8 @@ class HandwritingPipeline:
         # Fast Path Rule: Always run primary OCR first
         raw_ocr_text, segments, initial_conf = self.htr_engine.recognize(ocr_input_img)
 
-        # Fast-path condition: Good recognition confidence (>= 0.78) and extracted tokens exist
-        is_fast_path = (initial_conf >= 0.78 and len(segments) > 0)
+        # Fast-path condition: Calibrated recognition confidence (>= 0.60) or parsed lines exist
+        is_fast_path = (initial_conf >= 0.60 or len(segments) >= 2)
 
         if is_fast_path or not config.use_preprocessing:
             multi_pass_info = {

@@ -279,6 +279,15 @@ async def _handle_uploaded_image(upload: UploadFile) -> Dict[str, Any]:
             except OSError as cleanup_err:
                 logger.warning(f"Could not remove temp file {temp_file}: {cleanup_err}")
 
+        # Proactive memory reclamation for strict cgroup memory environments (Render 512MB)
+        try:
+            import gc
+            gc.collect()
+            import ctypes
+            ctypes.CDLL("libc.so.6").malloc_trim(0)
+        except Exception:
+            pass
+
 
 @app.post("/analyze", summary="Analyze Handwritten Document (HNX26EPS04 Core)")
 async def analyze_document(
