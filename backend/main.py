@@ -180,6 +180,17 @@ async def health_check() -> Dict[str, str]:
     }
 
 
+def _get_rss_mb() -> float:
+    try:
+        with open("/proc/self/status") as f:
+            for line in f:
+                if line.startswith("VmRSS:"):
+                    return float(line.split()[1]) / 1024.0
+    except Exception:
+        pass
+    return 0.0
+
+
 async def _handle_uploaded_image(upload: UploadFile) -> Dict[str, Any]:
     """Validate uploaded image file and route to real AI handwriting stack."""
     if not upload or not upload.filename:
@@ -256,8 +267,20 @@ async def _handle_uploaded_image(upload: UploadFile) -> Dict[str, Any]:
             temp_file_path = tf.name
             temp_file = temp_file_path
 
+        # Immediately free the upload binary buffer from Python memory
+        del content
+
+        rss_in = _get_rss_mb()
+        if rss_in > 0:
+            logger.info(f"[{original_filename}] Starting AI processing. VmRSS: {rss_in:.1f}MB")
+
         # 6. Delegate to the AI Service adapter in worker threadpool to keep FastAPI event loop free
         result = await asyncio.to_thread(process_image, temp_file_path, filename=original_filename)
+
+        rss_out = _get_rss_mb()
+        if rss_out > 0:
+            logger.info(f"[{original_filename}] Completed AI processing. VmRSS: {rss_out:.1f}MB")
+
         return result
 
     except HTTPException:
@@ -285,6 +308,9 @@ async def _handle_uploaded_image(upload: UploadFile) -> Dict[str, Any]:
             gc.collect()
             import ctypes
             ctypes.CDLL("libc.so.6").malloc_trim(0)
+            rss_clean = _get_rss_mb()
+            if rss_clean > 0:
+                logger.info(f"Post-cleanup VmRSS: {rss_clean:.1f}MB")
         except Exception:
             pass
 

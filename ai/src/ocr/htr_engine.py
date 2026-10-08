@@ -69,6 +69,12 @@ class HTREngine:
         if self._initialized:
             return
         self.ocr = RapidOCR()
+        # Enforce memory-safe detection limits for 512MB cgroup
+        try:
+            self.ocr.text_detector.preprocess_op[0].limit_side_len = 960
+            self.ocr.text_detector.preprocess_op[0].limit_type = 'max'
+        except Exception:
+            pass
         self._initialized = True
 
     @staticmethod

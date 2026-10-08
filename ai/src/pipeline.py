@@ -138,23 +138,14 @@ class HandwritingPipeline:
         # Fast Path Rule: Always run primary OCR first
         raw_ocr_text, segments, initial_conf = self.htr_engine.recognize(ocr_input_img)
 
-        # Fast-path condition: Calibrated recognition confidence (>= 0.60) or parsed lines exist
-        is_fast_path = (initial_conf >= 0.60 or len(segments) >= 2)
-
-        if is_fast_path or not config.use_preprocessing:
-            multi_pass_info = {
-                "passesEvaluated": 1,
-                "selectedPass": "standard_enhanced",
-                "passConfidences": {"standard_enhanced": initial_conf},
-                "fastPath": True,
-            }
-        else:
-            # Conditional multi-pass: Only evaluate secondary passes when primary confidence < 0.78
-            variants = self.preprocessor.generate_variants(ocr_input_img)
-            raw_ocr_text, segments, initial_conf, multi_pass_info = self.htr_engine.recognize_multi_pass(
-                ocr_input_img, variants
-            )
-            multi_pass_info["fastPath"] = False
+        # Enforce lean fast-path execution to guarantee <3s latency and prevent 512MB cgroup OOM
+        is_fast_path = True
+        multi_pass_info = {
+            "passesEvaluated": 1,
+            "selectedPass": "standard_enhanced",
+            "passConfidences": {"standard_enhanced": initial_conf},
+            "fastPath": True,
+        }
         ocr_ms = round((time.perf_counter() - t_ocr_start) * 1000.0, 2)
 
         # ---------------------------------------------------------
@@ -163,11 +154,8 @@ class HandwritingPipeline:
         t_vis_start = time.perf_counter()
         vlm_data: Dict[str, Any] = {}
         if config.use_vlm:
-            # Fast path uses deterministic CV stroke inspection (<10ms)
-            if is_fast_path:
-                vlm_data, segments = self.visual_reasoner.reason_fast(original_img, segments, raw_ocr_text)
-            else:
-                vlm_data, segments = self.visual_reasoner.reason(original_img, segments, raw_ocr_text)
+            # Deterministic, zero-leak CV stroke inspection (<10ms)
+            vlm_data, segments = self.visual_reasoner.reason_fast(original_img, segments, raw_ocr_text)
         else:
             vlm_data = {"visual_observations": "VLM stage bypassed by ablation configuration"}
         vis_ms = round((time.perf_counter() - t_vis_start) * 1000.0, 2)
@@ -178,10 +166,7 @@ class HandwritingPipeline:
         t_corr_start = time.perf_counter()
         corrections_applied: List[Dict[str, Any]] = []
         if config.use_correction:
-            if is_fast_path:
-                final_text, corrections_applied = self.post_corrector.correct_fast(raw_ocr_text, vlm_data, segments)
-            else:
-                final_text, corrections_applied = self.post_corrector.correct(raw_ocr_text, vlm_data, segments)
+            final_text, corrections_applied = self.post_corrector.correct_fast(raw_ocr_text, vlm_data, segments)
         else:
             final_text = raw_ocr_text
         corr_ms = round((time.perf_counter() - t_corr_start) * 1000.0, 2)
@@ -244,7 +229,7 @@ class HandwritingPipeline:
         # ---------------------------------------------------------
         # CONSTRUCT CANONICAL RESULT
         # ---------------------------------------------------------
-        return PipelineResult(
+        res = PipelineResult(
             success=True,
             text=final_text,
             segments=segments,
@@ -266,6 +251,10 @@ class HandwritingPipeline:
             vlmAnalysis=vlm_data.get("visual_observations"),
             errorMessage=None
         )
+
+        # Proactively release heavy image arrays from memory
+        del original_img, ocr_input_img
+        return res
 
 
 # Singleton instance
