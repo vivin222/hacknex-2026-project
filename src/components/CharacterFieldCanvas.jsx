@@ -4,12 +4,14 @@ import React, { useEffect, useRef } from 'react';
  * CharacterFieldCanvas Component
  * Astra-style spatial FIELD OF INDIVIDUAL CHARACTERS for CRY NOVA homepage.
  *
- * Final Polish Pass:
+ * Master Enhancement & Polish:
  * - 3 distinct depth layers (distant faint, medium chalk/crimson, foreground bright with glow).
+ * - Controlled physics: permanent anchorX/anchorY, inverse-distance repulsion, return spring, and damping.
+ * - Intelligent field disturbance: restrained propagation wave/shockwave on fast pointer movement.
  * - Subtle pointer parallax response on depth layers.
- * - Cursor "Intelligence" effect: soft crimson interaction halo + proximity brightness boost.
- * - Stable original anchors with smooth inverse-distance repulsion, return spring, and damping.
- * - Continuous atmospheric radial contrast mask for central hero readability.
+ * - Cursor "Intelligence" effect: soft crimson halo + proximity brightness boost.
+ * - Optional micro-trails for brightest foreground glyphs on desktop.
+ * - Atmospheric elliptical hero readability field.
  * - Respects prefers-reduced-motion.
  * - Pure HTML5 Canvas 60 FPS, unmounted and completely cleaned up outside homepage.
  */
@@ -53,11 +55,16 @@ export default function CharacterFieldCanvas() {
       y: -9999,
       active: false,
       lastMoveTime: 0,
+      prevX: -9999,
+      prevY: -9999,
     };
 
     // Parallax smoothing state
     let curParallaxX = 0;
     let curParallaxY = 0;
+
+    // Intelligent field disturbance shockwave pulses
+    const shockwaves = [];
 
     // Deterministic PRNG for stable, repeatable anchor generation
     let seed = 9876543;
@@ -155,6 +162,8 @@ export default function CharacterFieldCanvas() {
             anchorY,
             currentX: anchorX,
             currentY: anchorY,
+            prevX: anchorX,
+            prevY: anchorY,
             vx: 0,
             vy: 0,
             depth,
@@ -171,12 +180,14 @@ export default function CharacterFieldCanvas() {
             orbitPhaseY,
             baseRot,
             currentRot: baseRot,
+            prevRot: baseRot,
             vRot: 0,
             maxRot,
             rotSpeed,
             rotPhase,
             breathSpeed,
             breathPhase,
+            waveBrightness: 0,
           });
         }
       }
@@ -205,29 +216,57 @@ export default function CharacterFieldCanvas() {
 
     handleResize();
 
-    // Event listeners for smooth pointer repulsion
-    const onPointerMove = (e) => {
-      mouse.x = e.clientX;
-      mouse.y = e.clientY;
+    // Event listeners for smooth pointer repulsion and rapid-sweep shockwave
+    const handlePointerAction = (clientX, clientY) => {
+      const now = Date.now();
+      const dt = Math.max(1, now - mouse.lastMoveTime);
+
+      if (mouse.prevX !== -9999 && !isReducedMotion && width >= 640) {
+        const moveDist = Math.hypot(clientX - mouse.prevX, clientY - mouse.prevY);
+        const speed = (moveDist / dt) * 16;
+
+        // If cursor moves rapidly, spawn a subtle information propagation wave
+        if (speed > 42 && shockwaves.length < 2) {
+          shockwaves.push({
+            x: clientX,
+            y: clientY,
+            radius: 12,
+            maxRadius: Math.min(width * 0.42, 340),
+            speed: 7.2,
+            life: 1.0,
+            strength: Math.min(speed * 0.05, 3.0),
+          });
+        }
+      }
+
+      mouse.prevX = mouse.x;
+      mouse.prevY = mouse.y;
+      mouse.x = clientX;
+      mouse.y = clientY;
       mouse.active = true;
-      mouse.lastMoveTime = Date.now();
+      mouse.lastMoveTime = now;
+    };
+
+    const onPointerMove = (e) => {
+      handlePointerAction(e.clientX, e.clientY);
     };
 
     const onPointerLeave = () => {
       mouse.active = false;
+      mouse.prevX = -9999;
+      mouse.prevY = -9999;
     };
 
     const onTouchMove = (e) => {
       if (e.touches.length > 0) {
-        mouse.x = e.touches[0].clientX;
-        mouse.y = e.touches[0].clientY;
-        mouse.active = true;
-        mouse.lastMoveTime = Date.now();
+        handlePointerAction(e.touches[0].clientX, e.touches[0].clientY);
       }
     };
 
     const onTouchEnd = () => {
       mouse.active = false;
+      mouse.prevX = -9999;
+      mouse.prevY = -9999;
     };
 
     window.addEventListener('pointermove', onPointerMove, { passive: true });
@@ -250,6 +289,16 @@ export default function CharacterFieldCanvas() {
       // Hero center position for atmospheric radial contrast mask
       const heroCenterX = width * 0.5;
       const heroCenterY = Math.min(height * 0.36, 340);
+
+      // Update active shockwave pulses
+      for (let s = shockwaves.length - 1; s >= 0; s--) {
+        const sw = shockwaves[s];
+        sw.radius += sw.speed;
+        sw.life -= 0.024;
+        if (sw.life <= 0 || sw.radius >= sw.maxRadius) {
+          shockwaves.splice(s, 1);
+        }
+      }
 
       // Parallax smoothing
       const targetParallaxX = mouse.active && !isReducedMotion ? (mouse.x - width * 0.5) / (width * 0.5) : 0;
@@ -283,7 +332,7 @@ export default function CharacterFieldCanvas() {
         const targetY = g.anchorY + ambientY + parallaxShiftY;
         const targetRot = isReducedMotion ? g.baseRot : g.baseRot + Math.sin(time * g.rotSpeed + g.rotPhase) * g.maxRot;
 
-        // 2. Cursor repulsion physics & proximity brightness boost
+        // 2. Direct cursor repulsion physics & proximity brightness boost
         let proximityHighlight = 0;
         if (mouse.active && !isReducedMotion) {
           const dx = g.currentX - mouse.x;
@@ -305,25 +354,49 @@ export default function CharacterFieldCanvas() {
           }
         }
 
-        // 3. Return spring force toward target anchor
+        // 3. Intelligent Field Disturbance (Shockwave wave front propagation)
+        for (let s = 0; s < shockwaves.length; s++) {
+          const sw = shockwaves[s];
+          const dxSw = g.currentX - sw.x;
+          const dySw = g.currentY - sw.y;
+          const distSw = Math.hypot(dxSw, dySw);
+          const waveThickness = 65;
+          const diff = Math.abs(distSw - sw.radius);
+
+          if (diff < waveThickness && distSw > 0.1) {
+            const waveProximity = (waveThickness - diff) / waveThickness;
+            const normSwX = dxSw / distSw;
+            const normSwY = dySw / distSw;
+            const waveForce = waveProximity * sw.strength * sw.life * (g.depth * 0.7);
+
+            g.vx += normSwX * waveForce * 1.4;
+            g.vy += normSwY * waveForce * 1.4;
+            g.waveBrightness = Math.max(g.waveBrightness, waveProximity * 0.35 * sw.life);
+          }
+        }
+
+        // Smooth wave brightness decay
+        g.waveBrightness *= 0.88;
+
+        // 4. Return spring force toward target anchor
         const springK = 0.046;
         g.vx += (targetX - g.currentX) * springK;
         g.vy += (targetY - g.currentY) * springK;
 
-        // 4. Velocity damping to eliminate jitter
+        // 5. Velocity damping to eliminate jitter
         const damping = 0.86;
         g.vx *= damping;
         g.vy *= damping;
         g.currentX += g.vx;
         g.currentY += g.vy;
 
-        // 5. Angular spring and damping
+        // 6. Angular spring and damping
         const rotSpring = (targetRot - g.currentRot) * 0.05;
         g.vRot += rotSpring;
         g.vRot *= 0.86;
         g.currentRot += g.vRot;
 
-        // 6. Atmospheric radial hero contrast mask
+        // 7. Atmospheric radial hero contrast mask
         const dxHeroNorm = (g.currentX - heroCenterX) / 440;
         const dyHeroNorm = (g.currentY - heroCenterY) / 280;
         const distHeroNorm = Math.hypot(dxHeroNorm, dyHeroNorm);
@@ -337,14 +410,14 @@ export default function CharacterFieldCanvas() {
           heroMask = 0.035 + 0.965 * smooth;
         }
 
-        // 7. Subtle opacity breathing + cursor proximity boost
+        // 8. Subtle opacity breathing + cursor proximity boost + wave brightness
         const breath = isReducedMotion ? 0 : Math.sin(time * g.breathSpeed + g.breathPhase) * 0.07;
-        const effAlpha = Math.max(0.01, Math.min(1.0, (g.baseOpacity + breath + proximityHighlight) * heroMask));
+        const effAlpha = Math.max(0.01, Math.min(1.0, (g.baseOpacity + breath + proximityHighlight + g.waveBrightness) * heroMask));
 
         // Skip rendering if practically invisible
         if (effAlpha < 0.02) continue;
 
-        // 8. Choose fill color matching CRY NOVA crimson / technical identity
+        // 9. Choose fill color matching CRY NOVA crimson / technical identity
         let fillStyle = '';
         if (g.colorType === 'distant') {
           fillStyle = `rgba(135, 45, 45, ${effAlpha * 0.75})`;
@@ -359,14 +432,33 @@ export default function CharacterFieldCanvas() {
           fillStyle = `rgba(255, 255, 255, ${effAlpha})`;
         }
 
-        // 9. Draw glyph with individual rotation and optional crimson glow
+        // 10. Optional micro-trail for brightest foreground glyphs during high velocity
+        if (g.depth >= 1.08 && g.hasGlow && !isReducedMotion && width >= 768) {
+          const velMag = Math.hypot(g.vx, g.vy);
+          if (velMag > 0.85) {
+            ctx.save();
+            ctx.translate(g.prevX, g.prevY);
+            ctx.rotate(g.prevRot);
+            ctx.font = `${g.fontSize}px "JetBrains Mono", monospace`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillStyle = `rgba(239, 68, 68, ${effAlpha * 0.18})`;
+            ctx.fillText(g.char, 0, 0);
+            ctx.restore();
+          }
+          g.prevX = g.currentX;
+          g.prevY = g.currentY;
+          g.prevRot = g.currentRot;
+        }
+
+        // 11. Draw glyph with individual rotation and optional crimson glow
         ctx.save();
         ctx.translate(g.currentX, g.currentY);
         ctx.rotate(g.currentRot);
 
         if (g.hasGlow && heroMask > 0.4) {
           ctx.shadowColor = 'rgba(239, 68, 68, 0.75)';
-          ctx.shadowBlur = (9 + proximityHighlight * 12) * g.depth;
+          ctx.shadowBlur = (9 + proximityHighlight * 12 + g.waveBrightness * 14) * g.depth;
         }
 
         ctx.font = `${g.fontSize}px "JetBrains Mono", "Courier New", monospace`;
