@@ -12,9 +12,15 @@ import ConfidenceBadge from './ConfidenceBadge';
 export default function UncertaintyPanel({
   uncertainRegions = [],
   activeRegionId = null,
+  selectedBbox = null,
   onSelectRegion = () => {},
   onApplyAlternative = () => {},
 }) {
+  const isBboxMatch = (b1, b2) => {
+    if (!b1 || !b2 || b1.length < 4 || b2.length < 4) return false;
+    return Math.abs(b1[0] - b2[0]) < 14 && Math.abs(b1[1] - b2[1]) < 14;
+  };
+
   if (!uncertainRegions || uncertainRegions.length === 0) {
     return (
       <div className="bg-[#0c0c12] border border-red-950/60 rounded-xl p-5 text-center shadow-md">
@@ -56,7 +62,7 @@ export default function UncertaintyPanel({
       {/* Uncertainty list */}
       <div className="p-4 space-y-3 max-h-[460px] overflow-y-auto">
         {uncertainRegions.map((region) => {
-          const isSelected = activeRegionId === region.id;
+          const isSelected = activeRegionId === region.id || isBboxMatch(region.bbox, selectedBbox);
           const conf = region.confidence ?? 0.5;
 
           let cardBorder = 'border-amber-950/70 bg-[#050508] hover:border-amber-600/60';

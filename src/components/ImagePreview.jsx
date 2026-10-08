@@ -30,16 +30,46 @@ export default function ImagePreview({
   onSelectSegment = null,
 }) {
   const [zoom, setZoom] = useState(1);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const dragStartRef = useRef({ x: 0, y: 0 });
+
   const [contrastMode, setContrastMode] = useState(false);
   const [showOverlays, setShowOverlays] = useState(true);
   const [naturalSize, setNaturalSize] = useState({ width: 0, height: 0 });
   const [hoveredIndex, setHoveredIndex] = useState(null);
   const imgRef = useRef(null);
 
-  const handleZoomIn = () => setZoom((prev) => Math.min(prev + 0.25, 4));
-  const handleZoomOut = () => setZoom((prev) => Math.max(prev - 0.25, 0.5));
-  const handleResetZoom = () => setZoom(1);
-  const handleFitToScreen = () => setZoom(0.9);
+  const handleZoomIn = () => setZoom((prev) => Math.min(Number((prev + 0.25).toFixed(2)), 4));
+  const handleZoomOut = () => setZoom((prev) => Math.max(Number((prev - 0.25).toFixed(2)), 0.5));
+  const handleResetZoom = () => {
+    setZoom(1);
+    setPan({ x: 0, y: 0 });
+  };
+  const handleFitToScreen = () => {
+    setZoom(0.9);
+    setPan({ x: 0, y: 0 });
+  };
+
+  const handleMouseDown = (e) => {
+    if (e.button === 0 && zoom > 1) {
+      setIsDragging(true);
+      dragStartRef.current = { x: e.clientX - pan.x, y: e.clientY - pan.y };
+    }
+  };
+
+  const handleMouseMove = (e) => {
+    if (isDragging && zoom > 1) {
+      setPan({
+        x: e.clientX - dragStartRef.current.x,
+        y: e.clientY - dragStartRef.current.y,
+      });
+    }
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
 
   const handleImageLoad = (e) => {
     const { naturalWidth, naturalHeight } = e.target;
@@ -50,10 +80,10 @@ export default function ImagePreview({
   const isBboxMatch = (b1, b2) => {
     if (!b1 || !b2 || b1.length < 4 || b2.length < 4) return false;
     return (
-      Math.abs(b1[0] - b2[0]) < 10 &&
-      Math.abs(b1[1] - b2[1]) < 10 &&
-      Math.abs(b1[2] - b2[2]) < 10 &&
-      Math.abs(b1[3] - b2[3]) < 10
+      Math.abs(b1[0] - b2[0]) < 12 &&
+      Math.abs(b1[1] - b2[1]) < 12 &&
+      Math.abs(b1[2] - b2[2]) < 12 &&
+      Math.abs(b1[3] - b2[3]) < 12
     );
   };
 
@@ -160,12 +190,28 @@ export default function ImagePreview({
       </div>
 
       {/* Interactive Canvas */}
-      <div className="relative flex-1 overflow-auto bg-slate-950/80 p-4 min-h-[340px] flex items-center justify-center select-none">
+      <div
+        className={`relative flex-1 overflow-hidden bg-slate-950/80 p-4 min-h-[380px] flex items-center justify-center select-none ${
+          zoom > 1 ? (isDragging ? 'cursor-grabbing' : 'cursor-grab') : 'cursor-default'
+        }`}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+      >
+        {/* Pan Hint when Zoomed */}
+        {zoom > 1 && (
+          <div className="absolute top-3 left-3 bg-slate-900/90 border border-slate-700/60 text-[10px] font-mono text-slate-300 px-2.5 py-1 rounded-full pointer-events-none shadow-md z-10 flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+            <span>Click & Drag to Pan ({Math.round(zoom * 100)}%)</span>
+          </div>
+        )}
+
         {imageUrl ? (
           <div
-            className="relative transition-transform duration-150 ease-out flex items-center justify-center"
+            className="relative transition-transform duration-75 ease-out flex items-center justify-center will-change-transform"
             style={{
-              transform: `scale(${zoom})`,
+              transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
               transformOrigin: 'center center',
             }}
           >
@@ -183,7 +229,7 @@ export default function ImagePreview({
             />
 
             {/* SVG Bounding Box Overlay Layer */}
-            {showOverlays && naturalSize.width > 0 && segments.length > 0 && (
+            {showOverlays && naturalSize.width > 0 && (segments.length > 0 || selectedBbox) && (
               <svg
                 className="absolute inset-0 w-full h-full pointer-events-auto rounded"
                 viewBox={`0 0 ${naturalSize.width} ${naturalSize.height}`}
@@ -290,6 +336,34 @@ export default function ImagePreview({
                     </g>
                   );
                 })}
+
+                {/* Dedicated High-Visibility Highlight Reticle for selectedBbox */}
+                {selectedBbox && selectedBbox.length >= 4 && (
+                  <g className="pointer-events-none">
+                    <rect
+                      x={Math.max(0, selectedBbox[0] - 4)}
+                      y={Math.max(0, selectedBbox[1] - 4)}
+                      width={Math.max(selectedBbox[2] - selectedBbox[0] + 8, 12)}
+                      height={Math.max(selectedBbox[3] - selectedBbox[1] + 8, 12)}
+                      fill="none"
+                      stroke="#38bdf8"
+                      strokeWidth={2.5}
+                      strokeDasharray="5 3"
+                      rx={4}
+                      className="animate-pulse"
+                    />
+                    <rect
+                      x={selectedBbox[0]}
+                      y={selectedBbox[1]}
+                      width={Math.max(selectedBbox[2] - selectedBbox[0], 6)}
+                      height={Math.max(selectedBbox[3] - selectedBbox[1], 6)}
+                      fill="rgba(56, 189, 248, 0.28)"
+                      stroke="#0284c7"
+                      strokeWidth={2.5}
+                      rx={3}
+                    />
+                  </g>
+                )}
               </svg>
             )}
           </div>

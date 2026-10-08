@@ -181,6 +181,12 @@ export default function ResultsPanel({
     setEditableText(resultData.text || '');
   };
 
+  const handleApplyAlternative = (region, alt) => {
+    if (region?.text && alt) {
+      setEditableText((prev) => prev.replace(region.text, alt));
+    }
+  };
+
   const handleExportText = () => {
     const blob = new Blob([editableText], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
@@ -323,11 +329,11 @@ export default function ResultsPanel({
           <button
             type="button"
             onClick={handleExportText}
-            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[#14141c] hover:bg-[#1c1c28] text-slate-200 text-xs font-mono font-medium border border-neutral-800 hover:border-red-500/50 transition-colors cursor-pointer"
-            title="Download plain transcription text"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#14141c] hover:bg-[#1c1c28] text-slate-200 text-xs font-mono font-medium border border-neutral-800 hover:border-red-500/50 transition-colors cursor-pointer"
+            title="Download plain transcription text (.txt)"
           >
             <Download className="w-3.5 h-3.5 text-red-400" />
-            <span>TXT</span>
+            <span>DOWNLOAD TXT</span>
           </button>
 
           <button
@@ -370,6 +376,9 @@ export default function ResultsPanel({
           onClick={() => {
             setCenterSubTab('uncertainty');
             setMobileActiveCol('center');
+            if (uncertainRegions.length > 0 && uncertainRegions[0].bbox) {
+              setSelectedBbox(uncertainRegions[0].bbox);
+            }
           }}
           aria-label="Review critical ambiguity flags"
           className="px-6 py-3 rounded-xl font-mono text-xs font-bold uppercase tracking-wider bg-gradient-to-r from-red-600 via-red-500 to-red-700 hover:from-red-500 hover:to-red-600 text-white shadow-[0_0_20px_rgba(239,68,68,0.45)] hover:shadow-[0_0_30px_rgba(239,68,68,0.7)] transition-all flex items-center justify-center gap-2.5 shrink-0 cursor-pointer transform hover:scale-[1.02] active:scale-[0.98] border border-red-400/40"
@@ -564,22 +573,53 @@ export default function ResultsPanel({
             <div className="flex-1 flex flex-col space-y-3">
               {/* Transcription Box */}
               <div className="bg-[#0c0c12] border border-neutral-800 rounded-xl overflow-hidden shadow-xl flex flex-col">
-                {/* Header: Clean TRANSCRIPTION label */}
-                <div className="px-3.5 py-2.5 bg-[#08080d] border-b border-neutral-800 flex items-center justify-between">
-                  <span className="text-xs font-bold uppercase tracking-wider text-white flex items-center gap-2">
+                {/* Header: Clean TRANSCRIPTION label + Prominent COPY TEXT Button */}
+                <div className="px-3.5 py-2.5 bg-[#08080d] border-b border-neutral-800 flex items-center justify-between gap-2 flex-wrap">
+                  <div className="flex items-center gap-2">
                     <FileText className="w-3.5 h-3.5 text-red-500" />
-                    <span>Transcription</span>
-                  </span>
+                    <span className="text-xs font-bold uppercase tracking-wider text-white">
+                      Transcription
+                    </span>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#12121a] text-slate-400 border border-neutral-800 hidden sm:inline">
+                      {wordCount} words
+                    </span>
+                  </div>
 
-                  {isEdited && transcriptViewMode === 'edit' && (
+                  <div className="flex items-center gap-2">
+                    {isEdited && transcriptViewMode === 'edit' && (
+                      <button
+                        type="button"
+                        onClick={handleResetText}
+                        className="text-[10px] font-mono text-red-400 hover:text-red-300 flex items-center gap-1 cursor-pointer px-2 py-1 rounded bg-red-950/30 border border-red-900/40 transition-colors"
+                      >
+                        <RotateCcw className="w-3 h-3" /> Reset original
+                      </button>
+                    )}
+
+                    {/* Dedicated High-Visibility COPY TEXT Button */}
                     <button
                       type="button"
-                      onClick={handleResetText}
-                      className="text-[10px] font-mono text-red-400 hover:underline flex items-center gap-1 cursor-pointer"
+                      onClick={handleCopy}
+                      className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-mono font-bold transition-all cursor-pointer ${
+                        copied
+                          ? 'bg-emerald-600 text-white shadow-[0_0_15px_rgba(16,185,129,0.5)] border border-emerald-400'
+                          : 'bg-[#14141c] hover:bg-[#1f1f2c] text-slate-200 border border-neutral-700 hover:border-red-500/50'
+                      }`}
+                      title="Copy transcribed text to clipboard"
                     >
-                      <RotateCcw className="w-3 h-3" /> Reset original
+                      {copied ? (
+                        <>
+                          <Check className="w-3.5 h-3.5 text-white" />
+                          <span>COPIED</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-3.5 h-3.5 text-red-400" />
+                          <span>COPY TEXT</span>
+                        </>
+                      )}
                     </button>
-                  )}
+                  </div>
                 </div>
 
                 {/* Find in Document Bar */}
@@ -833,7 +873,9 @@ export default function ResultsPanel({
             <div className="flex-1 bg-[#0c0c12] border border-neutral-800 rounded-xl p-3.5 shadow-xl">
               <UncertaintyPanel
                 uncertainRegions={uncertainRegions}
+                selectedBbox={selectedBbox}
                 onSelectRegion={(r) => setSelectedBbox(r.bbox)}
+                onApplyAlternative={handleApplyAlternative}
               />
             </div>
           )}
