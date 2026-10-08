@@ -18,7 +18,7 @@ import {
 import ConfidenceBadge from './ConfidenceBadge';
 
 /**
- * IntelligencePanel Component (Phases 11, 13, 14, 15)
+ * IntelligencePanel Component
  * Structured Document Intelligence with Grounded Provenance:
  * - Prominent "⚠ NEEDS HUMAN REVIEW" banner & review queue
  * - Revision Detection & Contradiction alerts
@@ -26,6 +26,7 @@ import ConfidenceBadge from './ConfidenceBadge';
  * - Numerical Measurements & Units
  * - Timeline & Chronology
  * - Verified Claims with [OBSERVED], [INFERRED], [UNCERTAIN] status and spatial bbox provenance
+ * Theme: High-Contrast Red + Black
  */
 export default function IntelligencePanel({
   entities = [],
@@ -43,20 +44,20 @@ export default function IntelligencePanel({
 
   return (
     <div className="space-y-5">
-      {/* 1. Human Verification Flag Banner (Phase 13) */}
+      {/* 1. Human Verification Flag Banner */}
       {needsReview ? (
-        <div className="p-4 rounded-xl bg-amber-50 border border-amber-300 shadow-xs space-y-3">
+        <div className="p-4 rounded-xl bg-amber-950/40 border border-amber-800/60 shadow-lg space-y-3">
           <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2 text-[#D97706] font-bold text-xs tracking-wider uppercase">
+            <div className="flex items-center gap-2 text-amber-400 font-bold text-xs tracking-wider uppercase">
               <AlertTriangle className="w-4 h-4 shrink-0" />
               <span>⚠ NEEDS HUMAN REVIEW ({flags.length || 1} flagged items)</span>
             </div>
-            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-100 text-[#D97706] border border-amber-300 font-bold uppercase">
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-900/60 text-amber-300 border border-amber-700/60 font-bold uppercase">
               Verification Required
             </span>
           </div>
 
-          <p className="text-xs text-[#525252] leading-relaxed">
+          <p className="text-xs text-slate-300 leading-relaxed font-mono">
             {reviewSummary?.documentWarning ||
               'This manuscript contains low-confidence or revised handwriting regions. Human verification is recommended before official reliance.'}
           </p>
@@ -67,38 +68,38 @@ export default function IntelligencePanel({
               {flags.map((flag, idx) => (
                 <div
                   key={flag.id || idx}
-                  className="p-3 bg-[#FFFFFF] border border-amber-200 rounded-lg text-xs space-y-1.5 shadow-2xs"
+                  className="p-3 bg-[#050508] border border-amber-900/50 rounded-lg text-xs space-y-1.5 shadow-inner"
                 >
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2 min-w-0">
-                      <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-[#D97706] border border-amber-300 uppercase font-bold shrink-0">
+                      <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-amber-950 text-amber-400 border border-amber-800 uppercase font-bold shrink-0">
                         ⚠ {flag.type || 'NEEDS REVIEW'}
                       </span>
-                      <span className="font-bold text-[#171717] truncate">
+                      <span className="font-bold text-white truncate">
                         "{flag.target}"
                       </span>
                     </div>
                     {typeof flag.confidence === 'number' && (
-                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#FAF6EE] text-[#D97706] border border-amber-200 shrink-0 font-bold">
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-800 shrink-0 font-bold">
                         {Math.round(flag.confidence * 100)}%
                       </span>
                     )}
                   </div>
 
-                  <p className="text-[#525252] text-[11px] leading-relaxed">
-                    <span className="font-semibold text-[#171717]">Reason: </span>
+                  <p className="text-slate-300 text-[11px] leading-relaxed font-mono">
+                    <span className="font-semibold text-red-400">Reason: </span>
                     {flag.reason}
                   </p>
 
                   <div className="flex items-center justify-between pt-1 text-[10px]">
-                    <span className="text-[#D97706] font-mono font-medium">
+                    <span className="text-amber-400 font-mono font-medium">
                       {flag.recommendation || 'Verify against original scan.'}
                     </span>
                     {flag.bbox && onSelectBbox && (
                       <button
                         type="button"
                         onClick={() => onSelectBbox(flag.bbox)}
-                        className="inline-flex items-center gap-1 text-[#2563EB] hover:underline font-mono"
+                        className="inline-flex items-center gap-1 text-cyan-400 hover:underline font-mono"
                       >
                         <Crosshair className="w-3 h-3" />
                         Locate on Scan
@@ -111,26 +112,26 @@ export default function IntelligencePanel({
           )}
         </div>
       ) : (
-        <div className="p-3.5 rounded-xl bg-blue-50/60 border border-blue-200 flex items-center justify-between gap-3 text-xs">
-          <div className="flex items-center gap-2 text-[#2563EB] font-semibold">
-            <CheckCircle2 className="w-4 h-4 text-[#2563EB]" />
+        <div className="p-3.5 rounded-xl bg-emerald-950/40 border border-emerald-800/50 flex items-center justify-between gap-3 text-xs shadow-md">
+          <div className="flex items-center gap-2 text-emerald-300 font-semibold">
+            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
             <span>High-Fidelity Document</span>
           </div>
-          <span className="text-[11px] font-mono text-[#525252]">
+          <span className="text-[11px] font-mono text-slate-400">
             All segments meet calibrated confidence standards
           </span>
         </div>
       )}
 
-      {/* 2. Revision Conflicts (Phase 15 — Crossed Out vs Active Directives) */}
+      {/* 2. Revision Conflicts (Crossed Out vs Active Directives) */}
       {conflicts.length > 0 && (
-        <div className="p-4 rounded-xl bg-red-50/70 border border-red-200 space-y-3 shadow-2xs">
+        <div className="p-4 rounded-xl bg-red-950/40 border border-red-800/60 space-y-3 shadow-lg">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-[#DC2626] font-bold text-xs uppercase tracking-wide">
+            <div className="flex items-center gap-2 text-red-400 font-bold text-xs uppercase tracking-wide">
               <Scissors className="w-4 h-4" />
               <span>Revision Detection & Contradiction Isolation</span>
             </div>
-            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-red-100 text-[#DC2626] border border-red-200 font-bold">
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-red-900/60 text-red-300 border border-red-700/60 font-bold">
               {conflicts.length} Revisions
             </span>
           </div>
@@ -139,19 +140,19 @@ export default function IntelligencePanel({
             {conflicts.map((conf, idx) => (
               <div
                 key={conf.id || idx}
-                className="p-3 bg-[#FFFFFF] border border-red-200 rounded-lg text-xs space-y-1 shadow-2xs"
+                className="p-3 bg-[#050508] border border-red-900/50 rounded-lg text-xs space-y-1 shadow-inner"
               >
                 <div className="flex items-center justify-between gap-2">
-                  <span className="font-mono text-[10px] text-[#DC2626] uppercase font-bold px-1.5 py-0.2 rounded bg-red-50 border border-red-200">
+                  <span className="font-mono text-[10px] text-red-400 uppercase font-bold px-1.5 py-0.2 rounded bg-red-950 border border-red-800">
                     {conf.type || 'STRIKETHROUGH_REVISION'}
                   </span>
                   {conf.struck_evidence && (
-                    <span className="text-xs font-mono text-[#DC2626] line-through font-bold">
+                    <span className="text-xs font-mono text-red-400 line-through font-bold">
                       [{conf.struck_evidence}]
                     </span>
                   )}
                 </div>
-                <p className="text-[#525252] text-xs leading-relaxed mt-1">
+                <p className="text-slate-300 text-xs leading-relaxed mt-1 font-mono">
                   {conf.description}
                 </p>
               </div>
@@ -160,16 +161,16 @@ export default function IntelligencePanel({
         </div>
       )}
 
-      {/* 3. Structured Entities (Phase 11) */}
-      <div className="bg-[#FAF6EE] border border-[#D8CEBC] rounded-xl overflow-hidden shadow-xs">
-        <div className="px-4 py-3 bg-[#FAF6EE] border-b border-[#D8CEBC] flex items-center justify-between">
+      {/* 3. Structured Entities */}
+      <div className="bg-[#0c0c12] border border-red-950/60 rounded-xl overflow-hidden shadow-xl">
+        <div className="px-4 py-3 bg-[#08080d] border-b border-red-950/60 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Stethoscope className="w-4 h-4 text-[#2563EB]" />
-            <h4 className="text-xs font-bold uppercase tracking-wider text-[#171717]">
+            <Stethoscope className="w-4 h-4 text-cyan-400" />
+            <h4 className="text-xs font-bold uppercase tracking-wider text-white">
               Extracted Entities
             </h4>
           </div>
-          <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-[#EAE3D2] text-[#525252] font-semibold border border-[#D8CEBC]">
+          <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-[#12121a] text-slate-300 font-semibold border border-red-950/60">
             {entities.length} items
           </span>
         </div>
@@ -180,7 +181,7 @@ export default function IntelligencePanel({
               const isMed = ent.type?.toLowerCase().includes('med');
               const isPat = ent.type?.toLowerCase().includes('patient');
               const EntIcon = isMed ? Pill : isPat ? User : Activity;
-              const iconColor = isMed ? 'text-[#2563EB]' : isPat ? 'text-[#06B6D4]' : 'text-[#525252]';
+              const iconColor = isMed ? 'text-red-400' : isPat ? 'text-cyan-400' : 'text-slate-400';
 
               return (
                 <div
@@ -188,17 +189,17 @@ export default function IntelligencePanel({
                   onMouseEnter={() => ent.bbox && onHoverBbox && onHoverBbox(ent.bbox)}
                   onMouseLeave={() => onHoverBbox && onHoverBbox(null)}
                   onClick={() => ent.bbox && onSelectBbox && onSelectBbox(ent.bbox)}
-                  className="p-2.5 rounded-lg bg-[#FFFFFF] border border-[#D8CEBC] hover:border-[#2563EB] flex items-center justify-between gap-3 text-xs transition-colors cursor-pointer shadow-2xs"
+                  className="p-2.5 rounded-lg bg-[#050508] border border-red-950/60 hover:border-red-600/60 flex items-center justify-between gap-3 text-xs transition-colors cursor-pointer shadow-inner"
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="p-1.5 rounded bg-[#FAF6EE] border border-[#D8CEBC] shrink-0">
+                    <div className="p-1.5 rounded bg-[#0c0c14] border border-red-950/60 shrink-0">
                       <EntIcon className={`w-3.5 h-3.5 ${iconColor}`} />
                     </div>
                     <div className="min-w-0">
-                      <div className="font-semibold text-[#171717] truncate">
+                      <div className="font-semibold text-white truncate">
                         {ent.value}
                       </div>
-                      <div className="text-[10px] font-mono text-[#737373]">
+                      <div className="text-[10px] font-mono text-slate-400">
                         {ent.type}
                       </div>
                     </div>
@@ -207,7 +208,7 @@ export default function IntelligencePanel({
                   <div className="flex items-center gap-2 shrink-0">
                     <ConfidenceBadge confidence={ent.confidence} size="sm" showLabel={false} />
                     {ent.bbox && (
-                      <span className="text-[10px] font-mono text-[#2563EB] flex items-center gap-0.5">
+                      <span className="text-[10px] font-mono text-cyan-400 flex items-center gap-0.5">
                         <Crosshair className="w-3 h-3" />
                       </span>
                     )}
@@ -216,21 +217,21 @@ export default function IntelligencePanel({
               );
             })
           ) : (
-            <p className="text-xs text-[#737373] text-center py-3">No structured entities extracted.</p>
+            <p className="text-xs text-slate-400 text-center py-3">No structured entities extracted.</p>
           )}
         </div>
       </div>
 
       {/* 4. Measurements & Quantities */}
-      <div className="bg-[#FAF6EE] border border-[#D8CEBC] rounded-xl overflow-hidden shadow-xs">
-        <div className="px-4 py-3 bg-[#FAF6EE] border-b border-[#D8CEBC] flex items-center justify-between">
+      <div className="bg-[#0c0c12] border border-red-950/60 rounded-xl overflow-hidden shadow-xl">
+        <div className="px-4 py-3 bg-[#08080d] border-b border-red-950/60 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Activity className="w-4 h-4 text-[#06B6D4]" />
-            <h4 className="text-xs font-bold uppercase tracking-wider text-[#171717]">
+            <Activity className="w-4 h-4 text-cyan-400" />
+            <h4 className="text-xs font-bold uppercase tracking-wider text-white">
               Measurements & Metrics
             </h4>
           </div>
-          <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-[#EAE3D2] text-[#525252] font-semibold border border-[#D8CEBC]">
+          <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-[#12121a] text-slate-300 font-semibold border border-red-950/60">
             {measurements.length} values
           </span>
         </div>
@@ -243,19 +244,19 @@ export default function IntelligencePanel({
                 onMouseEnter={() => m.bbox && onHoverBbox && onHoverBbox(m.bbox)}
                 onMouseLeave={() => onHoverBbox && onHoverBbox(null)}
                 onClick={() => m.bbox && onSelectBbox && onSelectBbox(m.bbox)}
-                className="p-2.5 rounded-lg bg-[#FFFFFF] border border-[#D8CEBC] hover:border-[#06B6D4] flex items-center justify-between text-xs cursor-pointer shadow-2xs"
+                className="p-2.5 rounded-lg bg-[#050508] border border-red-950/60 hover:border-cyan-600/60 flex items-center justify-between text-xs cursor-pointer shadow-inner"
               >
                 <div className="flex items-center gap-2 min-w-0">
-                  <span className="font-mono font-bold text-[#171717]">
+                  <span className="font-mono font-bold text-white">
                     {m.value}
                   </span>
                   {m.unit && (
-                    <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-[#FAF6EE] text-[#0891B2] border border-cyan-200">
+                    <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-cyan-950/70 text-cyan-300 border border-cyan-800/50">
                       {m.unit}
                     </span>
                   )}
                   {m.category && (
-                    <span className="text-[10px] text-[#737373] truncate">
+                    <span className="text-[10px] text-slate-400 truncate">
                       ({m.category})
                     </span>
                   )}
@@ -266,7 +267,7 @@ export default function IntelligencePanel({
                     <ConfidenceBadge confidence={m.confidence} size="sm" showLabel={false} />
                   )}
                   {m.bbox && (
-                    <span className="text-[10px] font-mono text-[#06B6D4] flex items-center gap-0.5">
+                    <span className="text-[10px] font-mono text-cyan-400 flex items-center gap-0.5">
                       <Crosshair className="w-3 h-3" />
                     </span>
                   )}
@@ -274,21 +275,21 @@ export default function IntelligencePanel({
               </div>
             ))
           ) : (
-            <p className="text-xs text-[#737373] text-center py-3">No quantitative measurements detected.</p>
+            <p className="text-xs text-slate-400 text-center py-3">No quantitative measurements detected.</p>
           )}
         </div>
       </div>
 
-      {/* 5. Verified Claims with Spatial Provenance (Phase 14 — Core Novelty) */}
-      <div className="bg-[#FAF6EE] border border-[#D8CEBC] rounded-xl overflow-hidden shadow-xs">
-        <div className="px-4 py-3 bg-[#FAF6EE] border-b border-[#D8CEBC] flex items-center justify-between">
+      {/* 5. Verified Claims with Spatial Provenance */}
+      <div className="bg-[#0c0c12] border border-red-950/60 rounded-xl overflow-hidden shadow-xl">
+        <div className="px-4 py-3 bg-[#08080d] border-b border-red-950/60 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <FileCheck2 className="w-4 h-4 text-[#2563EB]" />
-            <h4 className="text-xs font-bold uppercase tracking-wider text-[#171717]">
+            <FileCheck2 className="w-4 h-4 text-red-400" />
+            <h4 className="text-xs font-bold uppercase tracking-wider text-white">
               Verified Claims & Provenance
             </h4>
           </div>
-          <span className="text-[10px] font-mono text-[#2563EB] bg-blue-50 px-2 py-0.5 rounded border border-blue-200 font-bold">
+          <span className="text-[10px] font-mono text-red-400 bg-red-950/80 px-2 py-0.5 rounded border border-red-900/60 font-bold">
             Ground Truth Links
           </span>
         </div>
@@ -301,14 +302,14 @@ export default function IntelligencePanel({
                 onMouseEnter={() => claim.bbox && onHoverBbox && onHoverBbox(claim.bbox)}
                 onMouseLeave={() => onHoverBbox && onHoverBbox(null)}
                 onClick={() => claim.bbox && onSelectBbox && onSelectBbox(claim.bbox)}
-                className="p-3 bg-[#FFFFFF] border border-[#D8CEBC] hover:border-[#2563EB] rounded-lg text-xs space-y-1.5 transition-colors cursor-pointer shadow-2xs"
+                className="p-3 bg-[#050508] border border-red-950/60 hover:border-red-600/60 rounded-lg text-xs space-y-1.5 transition-colors cursor-pointer shadow-inner"
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="font-mono text-[10px] px-1.5 py-0.2 rounded bg-blue-50 text-[#2563EB] border border-blue-200 font-bold">
+                    <span className="font-mono text-[10px] px-1.5 py-0.2 rounded bg-red-950 text-red-400 border border-red-900 font-bold">
                       [OBSERVED]
                     </span>
-                    <span className="font-semibold text-[#171717]">
+                    <span className="font-semibold text-white">
                       {claim.claim}
                     </span>
                   </div>
@@ -318,15 +319,15 @@ export default function IntelligencePanel({
                 </div>
 
                 {claim.evidence && (
-                  <p className="text-[11px] text-[#525252] pl-2 border-l-2 border-[#2563EB] font-serif-doc italic">
+                  <p className="text-[11px] text-slate-300 pl-2 border-l-2 border-red-600 font-mono italic">
                     "{claim.evidence}"
                   </p>
                 )}
 
-                <div className="flex items-center justify-between pt-1 text-[10px] font-mono text-[#737373]">
+                <div className="flex items-center justify-between pt-1 text-[10px] font-mono text-slate-400">
                   <span>Source: {claim.source || filename}</span>
                   {claim.bbox && (
-                    <span className="text-[#2563EB] flex items-center gap-1 font-semibold hover:underline">
+                    <span className="text-cyan-400 flex items-center gap-1 font-semibold hover:underline">
                       <Crosshair className="w-3 h-3" />
                       Locate on Scan [{claim.bbox.slice(0, 2).join(',')}]
                     </span>
@@ -335,7 +336,7 @@ export default function IntelligencePanel({
               </div>
             ))
           ) : (
-            <p className="text-xs text-[#737373] text-center py-3">No claims evaluated.</p>
+            <p className="text-xs text-slate-400 text-center py-3">No claims evaluated.</p>
           )}
         </div>
       </div>

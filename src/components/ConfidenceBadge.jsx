@@ -2,35 +2,35 @@ import React from 'react';
 import { ShieldCheck, AlertTriangle, ShieldAlert } from 'lucide-react';
 
 /**
- * Visual confidence indicator badge with Paper Intelligence locked colors:
- * High (>= 85%): Primary Blue (#2563EB)
- * Medium (70% - 84%): Human Review Amber (#D97706)
- * Low (< 70%): Retraction / Critical Red (#DC2626)
+ * Visual confidence indicator badge (High-Contrast Red + Black Theme)
+ * High (>= 85%): Emerald Green
+ * Medium (70% - 84%): Amber Review
+ * Low (< 70%): Critical Red
  */
 export default function ConfidenceBadge({ confidence = 0, size = 'md', showLabel = true }) {
   const percentage = Math.round(confidence * 100);
 
   let tone = {
-    bg: 'bg-blue-50',
-    border: 'border-blue-200',
-    text: 'text-[#2563EB]',
+    bg: 'bg-emerald-950/70',
+    border: 'border-emerald-700/60',
+    text: 'text-emerald-400',
     label: 'High Confidence',
     Icon: ShieldCheck,
   };
 
   if (confidence < 0.70) {
     tone = {
-      bg: 'bg-red-50',
-      border: 'border-red-200',
-      text: 'text-[#DC2626]',
+      bg: 'bg-red-950/80',
+      border: 'border-red-700/60',
+      text: 'text-red-400',
       label: 'Critical Ambiguity',
       Icon: ShieldAlert,
     };
   } else if (confidence < 0.85) {
     tone = {
-      bg: 'bg-amber-50',
-      border: 'border-amber-200',
-      text: 'text-[#D97706]',
+      bg: 'bg-amber-950/80',
+      border: 'border-amber-700/60',
+      text: 'text-amber-400',
       label: 'Needs Human Review',
       Icon: AlertTriangle,
     };
@@ -46,7 +46,7 @@ export default function ConfidenceBadge({ confidence = 0, size = 'md', showLabel
 
   return (
     <div
-      className={`inline-flex items-center rounded-full border ${tone.bg} ${tone.border} ${tone.text} ${sizeClasses} shadow-xs font-mono`}
+      className={`inline-flex items-center rounded-full border ${tone.bg} ${tone.border} ${tone.text} ${sizeClasses} shadow-sm font-mono`}
       title={`Calculated OCR Confidence: ${percentage}%`}
     >
       <Icon className={size === 'lg' ? 'w-4 h-4' : 'w-3.5 h-3.5'} />

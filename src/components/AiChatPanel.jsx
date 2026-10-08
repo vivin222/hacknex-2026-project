@@ -20,12 +20,13 @@ import {
 import { answerDocumentQuery, SUGGESTED_QUESTIONS } from '../services/aiQueryEngine';
 
 /**
- * AiChatPanel Component (Phase 12 — Instant AI Assistant)
+ * AiChatPanel Component
  * Grounded query answering without hallucinations:
  * - Direct answers citing original handwriting strokes
  * - Quick-select questions covering all core judging prompts
  * - Honest disclosure: [OBSERVED], [INFERRED], [UNCERTAIN]
  * - Clickable coordinates linking directly to source bounding box on scan
+ * Theme: High-Contrast Red + Black
  */
 export default function AiChatPanel({
   resultData,
@@ -102,19 +103,19 @@ export default function AiChatPanel({
   };
 
   return (
-    <div className="flex flex-col h-full bg-[#FAF6EE] border border-[#D8CEBC] rounded-xl overflow-hidden shadow-xs">
+    <div className="flex flex-col h-full bg-[#0c0c12] border border-red-950/60 rounded-xl overflow-hidden shadow-xl">
       {/* Assistant Header */}
-      <div className="px-4 py-3 bg-[#FAF6EE] border-b border-[#D8CEBC] flex items-center justify-between">
+      <div className="px-4 py-3 bg-[#08080d] border-b border-red-950/60 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="p-1.5 rounded-lg bg-blue-50 text-[#2563EB] border border-blue-200">
+          <div className="p-1.5 rounded-lg bg-red-950/80 text-red-400 border border-red-900/40">
             <Sparkles className="w-4 h-4" />
           </div>
           <div>
-            <h3 className="text-xs font-bold uppercase tracking-wider text-[#171717] flex items-center gap-1.5">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-white flex items-center gap-1.5">
               <span>Instant AI Assistant</span>
-              <span className="w-1.5 h-1.5 rounded-full bg-[#06B6D4] animate-pulse" />
+              <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
             </h3>
-            <p className="text-[10px] text-[#525252]">
+            <p className="text-[10px] text-slate-400">
               Strictly grounded in extracted document evidence
             </p>
           </div>
@@ -123,7 +124,7 @@ export default function AiChatPanel({
         <button
           type="button"
           onClick={handleClearHistory}
-          className="p-1.5 text-[#737373] hover:text-[#171717] hover:bg-[#EAE3D2] rounded transition-colors text-[10px] font-mono flex items-center gap-1"
+          className="p-1.5 text-slate-400 hover:text-white hover:bg-[#12121a] rounded transition-colors text-[10px] font-mono flex items-center gap-1"
           title="Reset conversation"
         >
           <RotateCcw className="w-3.5 h-3.5" />
@@ -131,9 +132,9 @@ export default function AiChatPanel({
         </button>
       </div>
 
-      {/* Suggested Questions Grid (Phase 12 Prompts) */}
-      <div className="p-2.5 bg-[#FFFFFF] border-b border-[#D8CEBC] flex items-center gap-1.5 overflow-x-auto">
-        <span className="text-[10px] font-mono uppercase tracking-wider text-[#737373] shrink-0 font-bold px-1">
+      {/* Suggested Questions Grid */}
+      <div className="p-2.5 bg-[#050508] border-b border-red-950/60 flex items-center gap-1.5 overflow-x-auto">
+        <span className="text-[10px] font-mono uppercase tracking-wider text-red-400 shrink-0 font-bold px-1">
           Prompts:
         </span>
         {SUGGESTED_QUESTIONS.map((sq) => (
@@ -142,7 +143,7 @@ export default function AiChatPanel({
             type="button"
             onClick={() => handleSendQuestion(sq.query)}
             disabled={isTyping}
-            className="px-2.5 py-1 rounded text-[11px] font-medium bg-[#FAF6EE] hover:bg-blue-50 hover:text-[#2563EB] hover:border-blue-200 text-[#171717] border border-[#D8CEBC] transition-colors shrink-0 disabled:opacity-40"
+            className="px-2.5 py-1 rounded text-[11px] font-medium bg-[#0c0c14] hover:bg-red-950/70 hover:text-red-300 hover:border-red-800 text-slate-300 border border-red-950/60 transition-colors shrink-0 disabled:opacity-40"
           >
             {sq.label}
           </button>
@@ -160,21 +161,21 @@ export default function AiChatPanel({
               className={`flex gap-3 text-xs ${isUser ? 'justify-end' : 'justify-start'}`}
             >
               {!isUser && (
-                <div className="w-7 h-7 rounded-lg bg-blue-50 border border-blue-200 text-[#2563EB] flex items-center justify-center shrink-0 mt-0.5">
+                <div className="w-7 h-7 rounded-lg bg-red-950/80 border border-red-900/50 text-red-400 flex items-center justify-center shrink-0 mt-0.5 shadow-sm">
                   <Bot className="w-4 h-4" />
                 </div>
               )}
 
               <div
-                className={`max-w-[85%] rounded-lg p-3.5 space-y-2 border shadow-2xs ${
+                className={`max-w-[85%] rounded-lg p-3.5 space-y-2 border shadow-inner ${
                   isUser
-                    ? 'bg-[#171717] text-[#FAF6EE] border-[#171717]'
-                    : 'bg-[#FFFFFF] text-[#171717] border-[#D8CEBC]'
+                    ? 'bg-red-950/80 text-white border-red-800/60'
+                    : 'bg-[#050508] text-slate-200 border-red-950/60'
                 }`}
               >
                 {/* Message Header */}
-                <div className="flex items-center justify-between gap-3 text-[10px] font-mono opacity-70">
-                  <span className="font-bold uppercase tracking-wider">
+                <div className="flex items-center justify-between gap-3 text-[10px] font-mono text-slate-400">
+                  <span className="font-bold uppercase tracking-wider text-red-400">
                     {isUser ? 'Judge / Investigator' : 'CRY NOVA Intelligence'}
                   </span>
                   <span>{msg.timestamp}</span>
@@ -182,13 +183,13 @@ export default function AiChatPanel({
 
                 {/* User query text */}
                 {isUser && (
-                  <p className="font-medium text-xs text-[#FAF6EE]">{msg.text}</p>
+                  <p className="font-medium text-xs text-white">{msg.text}</p>
                 )}
 
                 {/* AI Grounded Answer Body */}
                 {!isUser && (
                   <div className="space-y-2">
-                    <p className="text-xs text-[#171717] leading-relaxed">
+                    <p className="text-xs text-slate-200 leading-relaxed font-mono">
                       {msg.answerText}
                     </p>
 
@@ -198,14 +199,14 @@ export default function AiChatPanel({
                         {msg.bullets.map((b, bIdx) => (
                           <div
                             key={bIdx}
-                            className="p-2 rounded bg-[#FAF6EE] border border-[#D8CEBC] space-y-1"
+                            className="p-2 rounded bg-[#0a0a10] border border-red-950/60 space-y-1"
                           >
                             <div className="flex items-center justify-between gap-2 flex-wrap">
                               <div className="flex items-center gap-1.5">
                                 <span className={`text-[9px] font-mono px-1.5 py-0.2 rounded border font-bold ${b.badgeClass}`}>
                                   [{b.type}]
                                 </span>
-                                <span className="font-semibold text-[#171717]">
+                                <span className="font-semibold text-white">
                                   {b.title}
                                 </span>
                               </div>
@@ -214,7 +215,7 @@ export default function AiChatPanel({
                                 <button
                                   type="button"
                                   onClick={() => onSelectBbox(b.bbox)}
-                                  className="text-[10px] font-mono text-[#2563EB] hover:underline flex items-center gap-1 font-semibold"
+                                  className="text-[10px] font-mono text-cyan-400 hover:underline flex items-center gap-1 font-semibold"
                                   title="Highlight coordinates on scan"
                                 >
                                   <Crosshair className="w-3 h-3" />
@@ -223,7 +224,7 @@ export default function AiChatPanel({
                               )}
                             </div>
 
-                            <p className="text-[11px] text-[#525252]">
+                            <p className="text-[11px] text-slate-300 font-mono">
                               {b.detail}
                             </p>
                           </div>
@@ -233,9 +234,9 @@ export default function AiChatPanel({
 
                     {/* Provenance source badge */}
                     {msg.sourceSummary && (
-                      <div className="pt-1 border-t border-[#D8CEBC]/70 text-[9px] font-mono text-[#737373] flex items-center justify-between">
+                      <div className="pt-1 border-t border-red-950/60 text-[9px] font-mono text-slate-400 flex items-center justify-between">
                         <span>Grounded Source: {msg.sourceSummary}</span>
-                        <span className="text-[#059669] font-semibold">✓ Zero Hallucination Mode</span>
+                        <span className="text-emerald-400 font-semibold">✓ Zero Hallucination Mode</span>
                       </div>
                     )}
                   </div>
@@ -243,7 +244,7 @@ export default function AiChatPanel({
               </div>
 
               {isUser && (
-                <div className="w-7 h-7 rounded-lg bg-[#EAE3D2] border border-[#D8CEBC] text-[#171717] flex items-center justify-center shrink-0 mt-0.5">
+                <div className="w-7 h-7 rounded-lg bg-[#14141c] border border-red-950/60 text-slate-300 flex items-center justify-center shrink-0 mt-0.5">
                   <User className="w-4 h-4" />
                 </div>
               )}
@@ -252,11 +253,11 @@ export default function AiChatPanel({
         })}
 
         {isTyping && (
-          <div className="flex gap-3 text-xs justify-start items-center text-[#737373]">
-            <div className="w-7 h-7 rounded-lg bg-blue-50 border border-blue-200 text-[#2563EB] flex items-center justify-center shrink-0">
+          <div className="flex gap-3 text-xs justify-start items-center text-slate-400">
+            <div className="w-7 h-7 rounded-lg bg-red-950/60 border border-red-900/40 text-red-400 flex items-center justify-center shrink-0">
               <Bot className="w-4 h-4 animate-spin" />
             </div>
-            <span className="font-mono text-[11px] animate-pulse">
+            <span className="font-mono text-[11px] text-red-300 animate-pulse">
               Synthesizing grounded citations from optical handwriting strokes...
             </span>
           </div>
@@ -271,7 +272,7 @@ export default function AiChatPanel({
           e.preventDefault();
           handleSendQuestion();
         }}
-        className="p-3 bg-[#FAF6EE] border-t border-[#D8CEBC] flex items-center gap-2"
+        className="p-3 bg-[#08080d] border-t border-red-950/60 flex items-center gap-2"
       >
         <input
           type="text"
@@ -279,12 +280,12 @@ export default function AiChatPanel({
           onChange={(e) => setInputQuery(e.target.value)}
           placeholder="Ask a question about this manuscript (e.g. 'What was crossed out?')"
           disabled={isTyping}
-          className="flex-1 px-3 py-2 text-xs bg-[#FFFFFF] border border-[#D8CEBC] rounded-lg text-[#171717] placeholder-[#A39986] focus:outline-none focus:border-[#2563EB]"
+          className="flex-1 px-3 py-2 text-xs bg-[#050508] border border-red-950/60 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-red-600"
         />
         <button
           type="submit"
           disabled={!inputQuery.trim() || isTyping}
-          className="px-4 py-2 bg-[#2563EB] hover:bg-blue-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors disabled:opacity-40"
+          className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors disabled:opacity-40 shadow-md shadow-red-950/60"
         >
           <Send className="w-3.5 h-3.5" />
           <span>Ask</span>

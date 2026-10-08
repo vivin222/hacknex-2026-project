@@ -11,14 +11,10 @@ import {
 } from 'lucide-react';
 
 /**
- * IntelligenceDashboard Component (Phase 16 — Intelligence Telemetry)
+ * IntelligenceDashboard Component
  * Authentic metrics strictly derived from real pipeline execution:
  * OCR Confidence, Needs Review, Entities, Measurements, Claims, Revisions, Evidence Regions, Pipeline Latency.
- * Locked Colors:
- * - Blue: #2563EB
- * - Cyan: #06B6D4
- * - Amber: #D97706
- * - Red: #DC2626
+ * Theme: High-Contrast Red + Black
  */
 export default function IntelligenceDashboard({ resultData }) {
   if (!resultData) return null;
@@ -40,8 +36,8 @@ export default function IntelligenceDashboard({ resultData }) {
       status: confPercent >= 75 ? 'normal' : 'warning',
       sub: confPercent >= 75 ? 'Calibrated Mean' : '⚠ Review Required',
       icon: Gauge,
-      color: confPercent >= 75 ? 'text-[#2563EB]' : 'text-[#D97706]',
-      bg: confPercent >= 75 ? 'bg-blue-50/70 border-blue-200' : 'bg-amber-50/70 border-amber-200',
+      color: confPercent >= 75 ? 'text-red-400' : 'text-amber-400',
+      bg: confPercent >= 75 ? 'bg-[#08080d] border-red-950/70' : 'bg-amber-950/30 border-amber-900/40',
     },
     {
       label: 'Needs Review',
@@ -49,8 +45,8 @@ export default function IntelligenceDashboard({ resultData }) {
       status: flagCount > 0 ? 'warning' : 'good',
       sub: flagCount > 0 ? 'Flagged Regions' : 'Zero Ambiguities',
       icon: AlertTriangle,
-      color: flagCount > 0 ? 'text-[#D97706]' : 'text-[#059669]',
-      bg: flagCount > 0 ? 'bg-amber-50/70 border-amber-200' : 'bg-emerald-50/70 border-emerald-200',
+      color: flagCount > 0 ? 'text-amber-400' : 'text-emerald-400',
+      bg: flagCount > 0 ? 'bg-amber-950/40 border-amber-800/40' : 'bg-emerald-950/30 border-emerald-900/40',
     },
     {
       label: 'Entities',
@@ -58,8 +54,8 @@ export default function IntelligenceDashboard({ resultData }) {
       status: 'normal',
       sub: 'Domain Semantics',
       icon: Stethoscope,
-      color: 'text-[#06B6D4]',
-      bg: 'bg-cyan-50/70 border-cyan-200',
+      color: 'text-cyan-400',
+      bg: 'bg-[#08080d] border-cyan-950/60',
     },
     {
       label: 'Measurements',
@@ -67,8 +63,8 @@ export default function IntelligenceDashboard({ resultData }) {
       status: 'normal',
       sub: 'Quantities & Units',
       icon: Activity,
-      color: 'text-[#06B6D4]',
-      bg: 'bg-cyan-50/70 border-cyan-200',
+      color: 'text-cyan-400',
+      bg: 'bg-[#08080d] border-cyan-950/60',
     },
     {
       label: 'Claims',
@@ -76,8 +72,8 @@ export default function IntelligenceDashboard({ resultData }) {
       status: 'normal',
       sub: 'Grounded Sentences',
       icon: FileCheck,
-      color: 'text-[#2563EB]',
-      bg: 'bg-blue-50/70 border-blue-200',
+      color: 'text-red-400',
+      bg: 'bg-[#08080d] border-red-950/70',
     },
     {
       label: 'Revisions',
@@ -85,8 +81,8 @@ export default function IntelligenceDashboard({ resultData }) {
       status: revisionCount > 0 ? 'revision' : 'normal',
       sub: revisionCount > 0 ? 'Strikethroughs Isolated' : 'Unrevised Body',
       icon: Scissors,
-      color: revisionCount > 0 ? 'text-[#DC2626]' : 'text-[#737373]',
-      bg: revisionCount > 0 ? 'bg-red-50/70 border-red-200' : 'bg-[#FAF6EE] border-[#D8CEBC]',
+      color: revisionCount > 0 ? 'text-red-500 font-bold' : 'text-slate-500',
+      bg: revisionCount > 0 ? 'bg-red-950/50 border-red-800/50' : 'bg-[#08080d] border-red-950/60',
     },
     {
       label: 'Evidence Regions',
@@ -94,8 +90,8 @@ export default function IntelligenceDashboard({ resultData }) {
       status: 'normal',
       sub: 'Spatial BBoxes',
       icon: Crosshair,
-      color: 'text-[#2563EB]',
-      bg: 'bg-blue-50/70 border-blue-200',
+      color: 'text-red-400',
+      bg: 'bg-[#08080d] border-red-950/70',
     },
     {
       label: 'Pipeline Latency',
@@ -103,19 +99,19 @@ export default function IntelligenceDashboard({ resultData }) {
       status: 'normal',
       sub: 'Multi-Pass HTR',
       icon: Timer,
-      color: 'text-[#171717]',
-      bg: 'bg-[#FAF6EE] border-[#D8CEBC]',
+      color: 'text-slate-200',
+      bg: 'bg-[#08080d] border-red-950/60',
     },
   ];
 
   return (
-    <div className="w-full bg-[#FAF6EE] border border-[#D8CEBC] rounded-xl p-3 shadow-xs">
+    <div className="w-full bg-[#0c0c12] border border-red-950/60 rounded-xl p-3 shadow-xl backdrop-blur">
       <div className="flex items-center justify-between mb-2 px-1">
-        <span className="text-[11px] font-mono uppercase tracking-wider text-[#171717] font-bold flex items-center gap-1.5">
-          <span className="w-1.5 h-1.5 rounded-full bg-[#2563EB]" />
+        <span className="text-[11px] font-mono uppercase tracking-wider text-slate-200 font-bold flex items-center gap-1.5">
+          <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
           Real Intelligence Telemetry:
         </span>
-        <span className="text-[10px] font-mono text-[#737373]">
+        <span className="text-[10px] font-mono text-red-400/80">
           Evidence-Linked Engine Output
         </span>
       </div>
@@ -126,9 +122,9 @@ export default function IntelligenceDashboard({ resultData }) {
           return (
             <div
               key={idx}
-              className={`p-2.5 rounded-lg border ${m.bg} flex flex-col justify-between transition-colors shadow-2xs`}
+              className={`p-2.5 rounded-lg border ${m.bg} flex flex-col justify-between transition-colors shadow-inner`}
             >
-              <div className="flex items-center justify-between text-[#525252] mb-1">
+              <div className="flex items-center justify-between text-slate-400 mb-1">
                 <span className="text-[10px] font-mono uppercase tracking-tight truncate pr-1 font-semibold">
                   {m.label}
                 </span>
@@ -139,7 +135,7 @@ export default function IntelligenceDashboard({ resultData }) {
                 <div className={`text-base font-bold font-mono ${m.color}`}>
                   {m.value}
                 </div>
-                <div className="text-[9px] text-[#737373] truncate mt-0.5">
+                <div className="text-[9px] font-mono text-slate-500 truncate mt-0.5">
                   {m.sub}
                 </div>
               </div>
