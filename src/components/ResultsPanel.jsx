@@ -11,7 +11,8 @@ import {
   Layers,
   Code2,
   FileDown,
-  Info
+  Info,
+  Crosshair
 } from 'lucide-react';
 import ImagePreview from './ImagePreview';
 import ConfidenceBadge from './ConfidenceBadge';
@@ -23,12 +24,10 @@ import IntelligenceDashboard from './IntelligenceDashboard';
 import AiChatPanel from './AiChatPanel';
 
 /**
- * ResultsPanel Component
- * Main Side-by-Side Verification & Transcription Workspace:
- * LEFT: Original unaltered handwriting scan with inspection controls
- * RIGHT: Real editable clean document editor with uncertainty highlighting,
- *        copy, reset, and export capabilities.
- * BOTTOM: Core Auditing Panels (Uncertainty, Margin Notes, Crossed-Out Content)
+ * ResultsPanel Component — Paper Intelligence Research Desk
+ * Left: Original handwriting source with interactive bounding box viewer
+ * Right: Instant AI Assistant OR Clean Document Editor & Transcript
+ * Bottom: Real Intelligence Telemetry & Auditing Drawers (Uncertainty, Revisions, Provenance)
  */
 export default function ResultsPanel({
   resultData,
@@ -43,7 +42,7 @@ export default function ResultsPanel({
   const [selectedBbox, setSelectedBbox] = useState(null);
   const [hoveredBbox, setHoveredBbox] = useState(null);
   const [showRawOcr, setShowRawOcr] = useState(false);
-  const [activeTab, setActiveTab] = useState('uncertainty'); // 'uncertainty' | 'marginalia' | 'raw'
+  const [activeTab, setActiveTab] = useState('uncertainty'); // 'uncertainty' | 'marginalia'
   const [rightViewMode, setRightViewMode] = useState('assistant'); // 'assistant' | 'editor'
 
   const wordCount = editableText.trim() ? editableText.trim().split(/\s+/).length : 0;
@@ -62,7 +61,7 @@ export default function ResultsPanel({
     setEditableText(resultData.text || '');
   };
 
-  // Export as text file
+  // Export as text file (Phase 19)
   const handleExportText = () => {
     const blob = new Blob([editableText], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
@@ -75,7 +74,7 @@ export default function ResultsPanel({
     URL.revokeObjectURL(url);
   };
 
-  // Export structured analysis as JSON
+  // Export structured analysis as JSON with complete provenance (Phase 19)
   const handleExportJson = () => {
     const exportPayload = {
       filename: originalFilename,
@@ -123,70 +122,69 @@ export default function ResultsPanel({
 
   return (
     <div className="w-full space-y-6">
-      {/* Top action bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900/90 border border-slate-800 p-4 rounded-xl shadow-lg backdrop-blur">
+      {/* Top action bar — Archival Research Desk Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[#FAF6EE] border border-[#D8CEBC] p-4 rounded-xl shadow-xs">
         <div className="flex items-center gap-3">
           <button
             type="button"
             onClick={onResetAll}
-            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium border border-slate-700/80 transition-colors"
+            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#FFFFFF] hover:bg-[#EAE3D2] text-[#171717] text-xs font-semibold border border-[#D8CEBC] transition-colors"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             Upload New Scan
           </button>
-          <div className="h-4 w-px bg-slate-800 hidden sm:block" />
-          <div className="text-xs text-slate-400 font-mono truncate max-w-xs sm:max-w-md">
-            File: <span className="text-slate-200 font-medium">{originalFilename}</span>
+          <div className="h-4 w-px bg-[#D8CEBC] hidden sm:block" />
+          <div className="text-xs text-[#525252] font-mono truncate max-w-xs sm:max-w-md">
+            Document: <span className="text-[#171717] font-semibold">{originalFilename}</span>
           </div>
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="text-xs text-slate-400 font-mono hidden md:inline">
-            Overall Confidence:
+          <div className="text-xs text-[#525252] font-mono hidden md:inline">
+            Document Score:
           </div>
           <ConfidenceBadge confidence={resultData.overallConfidence} size="md" />
         </div>
       </div>
 
-      {/* COMPACT REAL INTELLIGENCE METRICS DASHBOARD (Phase 12) */}
+      {/* REAL INTELLIGENCE TELEMETRY BAR (Phase 16) */}
       <IntelligenceDashboard resultData={resultData} />
 
-      {/* MAIN SIDE-BY-SIDE INSPECTION LAYOUT (Phase 4, 5, 8 & 9) */}
+      {/* MAIN SIDE-BY-SIDE RESEARCH DESK (Phase 8, 12, 14) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
-        {/* LEFT COLUMN: ORIGINAL IMAGE */}
-        <div className="flex flex-col h-full min-h-[480px]">
+        {/* LEFT COLUMN: ORIGINAL HANDWRITING SOURCE */}
+        <div className="flex flex-col h-full min-h-[500px]">
           <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-semibold tracking-wide uppercase text-slate-300 flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-blue-500" />
+            <h3 className="text-xs font-bold tracking-wider uppercase text-[#171717] flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-[#2563EB]" />
               Original Handwriting Source
             </h3>
-            <span className="text-[11px] font-mono text-slate-400">
-              Unaltered Reference Image
+            <span className="text-[11px] font-mono text-[#737373]">
+              Physical Scan Reference
             </span>
           </div>
 
           <div className="flex-1">
             <ImagePreview
               imageUrl={originalImageUrl}
-              title="Input Manuscript"
-              caption={`Resolution: ${resultData.processingInfo?.resolutionDpi || 300} DPI • Contrast: ${resultData.processingInfo?.contrastRatio || 'N/A'}`}
+              title="Manuscript Scan"
+              caption={`Resolution: ${resultData.processingInfo?.resolutionDpi || 300} DPI • Passes: ${resultData.processingInfo?.multiPassInfo?.passes_evaluated || 3}`}
               segments={resultData.segments || []}
               selectedBbox={selectedBbox}
               hoveredBbox={hoveredBbox}
               onSelectSegment={(seg) => setSelectedBbox(seg?.bbox || null)}
-              onHoverSegment={(seg) => setHoveredBbox(seg?.bbox || null)}
             />
           </div>
 
           {/* Preprocessing info card */}
           {resultData.processingInfo && (
-            <div className="mt-3 p-3 bg-slate-900/70 border border-slate-800/80 rounded-xl text-xs space-y-2">
-              <div className="flex items-center justify-between font-mono text-[11px] text-slate-400">
-                <span className="flex items-center gap-1.5 text-slate-300">
-                  <Sliders className="w-3 h-3 text-cyan-400" />
-                  Engine Preprocessing:
+            <div className="mt-3 p-3 bg-[#FAF6EE] border border-[#D8CEBC] rounded-lg text-xs space-y-2">
+              <div className="flex items-center justify-between font-mono text-[11px] text-[#525252]">
+                <span className="flex items-center gap-1.5 text-[#171717] font-bold">
+                  <Sliders className="w-3.5 h-3.5 text-[#2563EB]" />
+                  Multi-Pass Pipeline Telemetry:
                 </span>
-                <span className="text-slate-500">
+                <span className="text-[#737373]">
                   {resultData.processingInfo.processingTimeMs}ms latency
                 </span>
               </div>
@@ -194,22 +192,22 @@ export default function ResultsPanel({
                 {resultData.processingInfo.preProcessingApplied?.map((filter, i) => (
                   <span
                     key={i}
-                    className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800/90 text-slate-300 border border-slate-700/60"
+                    className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#FFFFFF] text-[#525252] border border-[#D8CEBC]"
                   >
                     {filter}
                   </span>
                 ))}
               </div>
               {resultData.processingInfo.multiPassInfo && (
-                <div className="pt-2 border-t border-slate-800/60 flex items-center justify-between text-[11px] font-mono">
-                  <span className="text-cyan-400 font-semibold">
-                    Multi-Pass HTR ({resultData.processingInfo.multiPassInfo.passes_evaluated || 3} variants)
+                <div className="pt-2 border-t border-[#D8CEBC] flex items-center justify-between text-[11px] font-mono">
+                  <span className="text-[#2563EB] font-bold">
+                    Multi-Pass HTR ({resultData.processingInfo.multiPassInfo.passes_evaluated || 3} passes)
                   </span>
-                  <span className="text-slate-300">
-                    Selected: <span className="text-blue-400 font-semibold">{resultData.processingInfo.multiPassInfo.selected_pass}</span>
+                  <span className="text-[#171717]">
+                    Selected Pass: <span className="font-bold text-[#2563EB]">{resultData.processingInfo.multiPassInfo.selected_pass}</span>
                     {resultData.processingInfo.multiPassInfo.confidence_gain > 0 && (
-                      <span className="text-cyan-300 ml-1">
-                        (+{(resultData.processingInfo.multiPassInfo.confidence_gain * 100).toFixed(1)}% conf)
+                      <span className="text-[#059669] font-bold ml-1">
+                        (+{(resultData.processingInfo.multiPassInfo.confidence_gain * 100).toFixed(1)}% gain)
                       </span>
                     )}
                   </span>
@@ -220,30 +218,30 @@ export default function ResultsPanel({
         </div>
 
         {/* RIGHT COLUMN: AI ASSISTANT OR CLEAN DOCUMENT EDITOR */}
-        <div className="flex flex-col h-full min-h-[480px]">
+        <div className="flex flex-col h-full min-h-[500px]">
           {/* View Mode Toggle Header */}
           <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-1 p-1 bg-slate-900 border border-slate-800 rounded-lg">
+            <div className="flex items-center gap-1 p-1 bg-[#FAF6EE] border border-[#D8CEBC] rounded-lg">
               <button
                 type="button"
                 onClick={() => setRightViewMode('assistant')}
-                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded text-xs font-semibold transition-all ${
+                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded text-xs font-bold transition-all ${
                   rightViewMode === 'assistant'
-                    ? 'bg-cyan-600 text-white shadow-md shadow-cyan-600/20'
-                    : 'text-slate-400 hover:text-slate-200'
+                    ? 'bg-[#0891B2] text-white shadow-xs'
+                    : 'text-[#525252] hover:text-[#171717]'
                 }`}
               >
-                <Sparkles className="w-3.5 h-3.5 text-cyan-200" />
+                <Sparkles className="w-3.5 h-3.5" />
                 <span>Instant AI Assistant</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setRightViewMode('editor')}
-                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded text-xs font-semibold transition-all ${
+                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded text-xs font-bold transition-all ${
                   rightViewMode === 'editor'
-                    ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20'
-                    : 'text-slate-400 hover:text-slate-200'
+                    ? 'bg-[#2563EB] text-white shadow-xs'
+                    : 'text-[#525252] hover:text-[#171717]'
                 }`}
               >
                 <FileText className="w-3.5 h-3.5" />
@@ -251,29 +249,29 @@ export default function ResultsPanel({
               </button>
             </div>
 
-            <div className="flex items-center gap-2 text-[11px] font-mono text-slate-400">
+            <div className="flex items-center gap-2 text-[11px] font-mono text-[#525252]">
               {rightViewMode === 'editor' ? (
                 <>
                   <span>{wordCount} words</span>
                   <span>•</span>
                   <span>{charCount} chars</span>
                   {isEdited && (
-                    <span className="text-amber-400 bg-amber-950/60 px-1.5 py-0.5 rounded border border-amber-800/40">
+                    <span className="text-[#D97706] bg-amber-50 px-1.5 py-0.5 rounded border border-amber-300 font-bold">
                       Modified
                     </span>
                   )}
                 </>
               ) : (
-                <span className="text-cyan-400 flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
-                  Grounded Intelligence
+                <span className="text-[#0891B2] flex items-center gap-1 font-semibold">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#06B6D4] animate-pulse" />
+                  Grounded Intelligence Active
                 </span>
               )}
             </div>
           </div>
 
           {rightViewMode === 'assistant' ? (
-            /* Mode 1: Instant AI Assistant Q&A Panel */
+            /* Mode 1: Instant AI Assistant Q&A Panel (Phase 12) */
             <div className="flex-1 flex flex-col min-h-[460px]">
               <AiChatPanel
                 resultData={resultData}
@@ -281,22 +279,22 @@ export default function ResultsPanel({
               />
             </div>
           ) : (
-            /* Mode 2: Clean Document Editor Card */
-            <div className="flex-1 flex flex-col bg-slate-900/90 border border-slate-800 rounded-xl overflow-hidden shadow-xl document-paper">
+            /* Mode 2: Clean Document Editor & Transcript */
+            <div className="flex-1 flex flex-col bg-[#FAF6EE] border border-[#D8CEBC] rounded-xl overflow-hidden shadow-xs">
               {/* Document Editor Toolbar */}
-              <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 bg-slate-900 border-b border-slate-800">
+              <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 bg-[#FAF6EE] border-b border-[#D8CEBC]">
                 <div className="flex items-center gap-2">
-                  <FileText className="w-4 h-4 text-blue-400" />
-                  <span className="text-xs font-medium text-slate-200">
-                    Document Output
+                  <FileText className="w-4 h-4 text-[#2563EB]" />
+                  <span className="text-xs font-bold text-[#171717]">
+                    Digitized Transcription
                   </span>
                   <button
                     type="button"
                     onClick={() => setShowRawOcr(!showRawOcr)}
                     className={`text-[11px] font-mono px-2 py-0.5 rounded transition-colors ${
                       showRawOcr
-                        ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30'
-                        : 'text-slate-400 hover:text-slate-200 bg-slate-800/60'
+                        ? 'bg-blue-100 text-[#2563EB] border border-blue-300 font-bold'
+                        : 'text-[#737373] hover:text-[#171717] bg-[#FFFFFF] border border-[#D8CEBC]'
                     }`}
                     title="Toggle raw uncorrected OCR output"
                   >
@@ -304,143 +302,139 @@ export default function ResultsPanel({
                   </button>
                 </div>
 
-              {/* Action Buttons */}
-              <div className="flex items-center gap-1.5">
-                <button
-                  type="button"
-                  onClick={handleResetText}
-                  disabled={!isEdited}
-                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs text-slate-400 hover:text-slate-200 hover:bg-slate-800 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
-                  title="Revert edits back to initial transcription"
-                  aria-label="Revert edits"
-                >
-                  <RotateCcw className="w-3 h-3" />
-                  <span className="hidden sm:inline">Reset</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleCopy}
-                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700/80 transition-colors"
-                  title="Copy transcription to clipboard"
-                  aria-label="Copy text"
-                >
-                  {copied ? (
-                    <>
-                      <Check className="w-3 h-3 text-emerald-400" />
-                      <span className="text-emerald-400">Copied</span>
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="w-3 h-3" />
-                      <span>Copy</span>
-                    </>
-                  )}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleExportJson}
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700/80 transition-colors"
-                  title="Export complete analysis payload as .json file"
-                  aria-label="Export JSON"
-                >
-                  <FileDown className="w-3 h-3 text-indigo-400" />
-                  <span>JSON</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleExportText}
-                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded text-xs bg-indigo-600 hover:bg-indigo-500 text-white font-medium shadow transition-colors"
-                  title="Export digitized text as .txt file"
-                  aria-label="Export text"
-                >
-                  <Download className="w-3 h-3" />
-                  <span>Export TXT</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Raw OCR Comparison Drawer (if toggled) */}
-            {showRawOcr && (
-              <div className="p-3 bg-slate-950/90 border-b border-slate-800 text-xs">
-                <div className="flex items-center justify-between text-slate-400 font-mono text-[11px] mb-1">
-                  <span className="text-amber-400 flex items-center gap-1">
-                    <Code2 className="w-3 h-3" />
-                    Raw Unfiltered OCR Stream (Before Post-Processing):
-                  </span>
-                </div>
-                <div className="p-2.5 bg-slate-950 rounded font-mono text-slate-400 text-xs leading-relaxed border border-slate-800/80">
-                  {resultData.rawOcrText || 'No raw OCR stream provided.'}
-                </div>
-              </div>
-            )}
-
-            {/* Interactive Uncertain Segment Pill Strip */}
-            {resultData.uncertainRegions && resultData.uncertainRegions.length > 0 && (
-              <div className="px-4 py-2 bg-slate-900/60 border-b border-slate-800/70 text-xs flex items-center gap-2 overflow-x-auto">
-                <span className="text-[11px] font-mono text-slate-400 shrink-0">
-                  Flagged Tokens:
-                </span>
+                {/* Action Buttons */}
                 <div className="flex items-center gap-1.5">
-                  {resultData.uncertainRegions.map((region) => {
-                    const isSelected = selectedRegionId === region.id;
-                    const inText = editableText.includes(region.text);
+                  <button
+                    type="button"
+                    onClick={handleResetText}
+                    disabled={!isEdited}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs text-[#737373] hover:text-[#171717] hover:bg-[#EAE3D2] disabled:opacity-30 transition-colors"
+                    title="Revert edits back to initial transcription"
+                  >
+                    <RotateCcw className="w-3 h-3" />
+                    <span className="hidden sm:inline">Reset</span>
+                  </button>
 
-                    return (
-                      <button
-                        key={region.id}
-                        type="button"
-                        onClick={() => {
-                          const nextSelect = isSelected ? null : region.id;
-                          setSelectedRegionId(nextSelect);
-                          setSelectedBbox(nextSelect ? region.bbox : null);
-                        }}
-                        className={`text-[11px] font-mono px-2 py-0.5 rounded-full border transition-all whitespace-nowrap flex items-center gap-1 ${
-                          isSelected
-                            ? 'bg-amber-500 text-slate-950 font-bold border-amber-400 shadow'
-                            : inText
-                            ? 'bg-amber-950/40 text-amber-300 border-amber-500/30 hover:border-amber-400'
-                            : 'bg-slate-800 text-slate-400 border-slate-700 line-through opacity-70'
-                        }`}
-                        title={`Click to focus on image: "${region.text}" (${Math.round(region.confidence * 100)}% - ${region.reason})`}
-                      >
-                        <span>{region.text}</span>
-                        <span className="text-[9px] opacity-75">
-                          {Math.round(region.confidence * 100)}%
-                        </span>
-                      </button>
-                    );
-                  })}
+                  <button
+                    type="button"
+                    onClick={handleCopy}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs bg-[#FFFFFF] hover:bg-[#EAE3D2] text-[#171717] border border-[#D8CEBC] transition-colors"
+                    title="Copy transcription to clipboard"
+                  >
+                    {copied ? (
+                      <>
+                        <Check className="w-3 h-3 text-[#059669]" />
+                        <span className="text-[#059669] font-bold">Copied</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3 h-3" />
+                        <span>Copy</span>
+                      </>
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleExportJson}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs bg-[#FFFFFF] hover:bg-[#EAE3D2] text-[#171717] border border-[#D8CEBC] font-semibold transition-colors"
+                    title="Export complete analysis payload as .json file with provenance"
+                  >
+                    <FileDown className="w-3 h-3 text-[#2563EB]" />
+                    <span>JSON</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleExportText}
+                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded text-xs bg-[#2563EB] hover:bg-blue-700 text-white font-semibold shadow-xs transition-colors"
+                    title="Export digitized text as .txt file"
+                  >
+                    <Download className="w-3 h-3" />
+                    <span>TXT</span>
+                  </button>
                 </div>
               </div>
-            )}
 
-            {/* Editable Text Area (Real Document Editor feel) */}
-            <div className="relative flex-1 p-4 bg-slate-950/50 flex flex-col">
-              <label htmlFor="transcription-editor" className="sr-only">
-                Editable Transcription Text
-              </label>
-              <textarea
-                id="transcription-editor"
-                value={editableText}
-                onChange={(e) => setEditableText(e.target.value)}
-                placeholder="Transcribed text will appear here..."
-                rows={12}
-                className="w-full flex-1 p-4 bg-transparent text-slate-100 font-sans text-sm md:text-base leading-relaxed resize-y focus:outline-none focus:ring-1 focus:ring-indigo-500/50 rounded-lg placeholder-slate-600 border border-transparent hover:border-slate-800 focus:border-indigo-500/60 transition-colors"
-                spellCheck="true"
-              />
+              {/* Raw OCR Comparison Drawer (if toggled) */}
+              {showRawOcr && (
+                <div className="p-3 bg-[#FFFFFF] border-b border-[#D8CEBC] text-xs">
+                  <div className="flex items-center justify-between text-[#525252] font-mono text-[11px] mb-1">
+                    <span className="text-[#D97706] font-bold flex items-center gap-1">
+                      <Code2 className="w-3 h-3" />
+                      Raw Verbatim OCR Stream (Before Post-Processing):
+                    </span>
+                  </div>
+                  <div className="p-2.5 bg-[#FAF6EE] rounded font-mono text-[#171717] text-xs leading-relaxed border border-[#D8CEBC]">
+                    {resultData.rawOcrText || 'No raw OCR stream provided.'}
+                  </div>
+                </div>
+              )}
 
-              <div className="mt-2 pt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-500">
-                <span>Directly editable • Click tokens above or cards below to inspect</span>
-                <span>UTF-8 Document Buffer</span>
+              {/* Interactive Flagged Tokens Pill Strip */}
+              {resultData.uncertainRegions && resultData.uncertainRegions.length > 0 && (
+                <div className="px-4 py-2 bg-[#FAF6EE] border-b border-[#D8CEBC] text-xs flex items-center gap-2 overflow-x-auto">
+                  <span className="text-[11px] font-mono text-[#525252] shrink-0 font-bold">
+                    Flagged Tokens:
+                  </span>
+                  <div className="flex items-center gap-1.5">
+                    {resultData.uncertainRegions.map((region) => {
+                      const isSelected = selectedRegionId === region.id;
+                      const inText = editableText.includes(region.text);
+
+                      return (
+                        <button
+                          key={region.id}
+                          type="button"
+                          onClick={() => {
+                            const nextSelect = isSelected ? null : region.id;
+                            setSelectedRegionId(nextSelect);
+                            setSelectedBbox(nextSelect ? region.bbox : null);
+                          }}
+                          className={`text-[11px] font-mono px-2 py-0.5 rounded-full border transition-all whitespace-nowrap flex items-center gap-1 ${
+                            isSelected
+                              ? 'bg-[#D97706] text-white font-bold border-[#D97706] shadow-xs'
+                              : inText
+                              ? 'bg-amber-50 text-[#D97706] border-amber-300 hover:border-amber-400'
+                              : 'bg-[#EAE3D2] text-[#737373] border-[#D8CEBC] line-through opacity-70'
+                          }`}
+                          title={`Click to focus on image: "${region.text}" (${Math.round(region.confidence * 100)}% - ${region.reason})`}
+                        >
+                          <span>{region.text}</span>
+                          <span className="text-[9px] opacity-75">
+                            {Math.round(region.confidence * 100)}%
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Editable Text Area (Paper Sheet feel) */}
+              <div className="relative flex-1 p-4 bg-[#FFFFFF] flex flex-col">
+                <label htmlFor="transcription-editor" className="sr-only">
+                  Editable Transcription Text
+                </label>
+                <textarea
+                  id="transcription-editor"
+                  value={editableText}
+                  onChange={(e) => setEditableText(e.target.value)}
+                  placeholder="Transcribed text will appear here..."
+                  rows={14}
+                  className="w-full flex-1 p-4 bg-[#FAF6EE] text-[#171717] font-serif-doc text-base sm:text-lg leading-relaxed resize-y focus:outline-none focus:ring-1 focus:ring-[#2563EB] rounded-lg placeholder-[#A39986] border border-[#D8CEBC] transition-colors"
+                  spellCheck="true"
+                />
+
+                <div className="mt-2 pt-2 border-t border-[#D8CEBC] flex items-center justify-between text-[11px] text-[#737373] font-mono">
+                  <span>Directly editable • Click tokens above or cards below to inspect</span>
+                  <span>Verified Archival Buffer</span>
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
-    </div>
 
       {/* SEMANTIC INTELLIGENCE, ENTITIES, PROVENANCE & CONFLICT DETECTION */}
       <IntelligencePanel
@@ -456,28 +450,28 @@ export default function ResultsPanel({
         onSelectBbox={(bbox) => setSelectedBbox(bbox)}
       />
 
-      {/* CORE AUDITING PANELS SECTION (Phase 6, 7, 8) */}
-      <div className="pt-4 border-t border-slate-800/80">
+      {/* AUDITING & DISAMBIGUATION BREAKDOWN SECTION */}
+      <div className="pt-4 border-t border-[#D8CEBC]">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h3 className="text-base font-semibold text-slate-100 flex items-center gap-2">
-              <Layers className="w-4 h-4 text-indigo-400" />
+            <h3 className="text-sm font-bold text-[#171717] flex items-center gap-2">
+              <Layers className="w-4 h-4 text-[#2563EB]" />
               Auditing & Disambiguation Breakdown
             </h3>
-            <p className="text-xs text-slate-400">
-              Transparent isolation of uncertainty, peripheral margin notes, and crossed-out deletions.
+            <p className="text-xs text-[#525252]">
+              Transparent isolation of uncertainty, peripheral notes, and pen strikethroughs.
             </p>
           </div>
 
-          {/* Quick tab switcher on smaller screens */}
-          <div className="flex items-center gap-1 bg-slate-900 p-1 rounded-lg border border-slate-800 text-xs">
+          {/* Quick tab switcher */}
+          <div className="flex items-center gap-1 bg-[#FAF6EE] p-1 rounded-lg border border-[#D8CEBC] text-xs">
             <button
               type="button"
               onClick={() => setActiveTab('uncertainty')}
-              className={`px-3 py-1 rounded font-medium transition-colors ${
+              className={`px-3 py-1 rounded font-bold transition-colors ${
                 activeTab === 'uncertainty'
-                  ? 'bg-indigo-600 text-white'
-                  : 'text-slate-400 hover:text-slate-200'
+                  ? 'bg-[#2563EB] text-white shadow-xs'
+                  : 'text-[#525252] hover:text-[#171717]'
               }`}
             >
               Uncertainty ({resultData.uncertainRegions?.length || 0})
@@ -485,20 +479,20 @@ export default function ResultsPanel({
             <button
               type="button"
               onClick={() => setActiveTab('marginalia')}
-              className={`px-3 py-1 rounded font-medium transition-colors ${
+              className={`px-3 py-1 rounded font-bold transition-colors ${
                 activeTab === 'marginalia'
-                  ? 'bg-indigo-600 text-white'
-                  : 'text-slate-400 hover:text-slate-200'
+                  ? 'bg-[#2563EB] text-white shadow-xs'
+                  : 'text-[#525252] hover:text-[#171717]'
               }`}
             >
-              Annotations ({((resultData.marginNotes?.length || 0) + (resultData.crossedOutText?.length || 0))})
+              Annotations & Revisions ({((resultData.marginNotes?.length || 0) + (resultData.crossedOutText?.length || 0))})
             </button>
           </div>
         </div>
 
         {/* Tab / Grid Display */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Phase 6: Uncertainty Panel (Takes 2 cols on wide screens if active or 1 col each) */}
+          {/* Uncertainty Panel */}
           <div className={`${activeTab === 'uncertainty' ? 'block' : 'hidden lg:block'} lg:col-span-2 space-y-4`}>
             <UncertaintyPanel
               uncertainRegions={resultData.uncertainRegions}
@@ -511,16 +505,18 @@ export default function ResultsPanel({
             />
           </div>
 
-          {/* Phase 7 & 8: Margin Notes and Crossed-Out Text */}
+          {/* Margin Notes and Crossed-Out Text */}
           <div className={`${activeTab === 'marginalia' ? 'block' : 'hidden lg:block'} space-y-6`}>
             <MarginNotes
               notes={resultData.marginNotes}
               onAppendToEditor={handleAppendText}
+              onSelectBbox={(bbox) => setSelectedBbox(bbox)}
             />
 
             <CrossedOutPanel
               crossedOutItems={resultData.crossedOutText}
               onRestoreToEditor={handleRestoreCrossedOut}
+              onSelectBbox={(bbox) => setSelectedBbox(bbox)}
             />
           </div>
         </div>

@@ -12,14 +12,21 @@
  */
 
 const envBaseUrl = typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_BASE_URL;
-const isLocal = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+const isLocal = typeof window !== 'undefined' && (
+  window.location.hostname === 'localhost' ||
+  window.location.hostname === '127.0.0.1' ||
+  window.location.hostname === '::1'
+);
 const defaultProdUrl = 'https://crynova-hacknex.onrender.com';
 
 export const API_CONFIG = {
+  // If envBaseUrl is explicitly defined (Vite env), use it.
+  // In local development, use empty string '' to leverage the Vite proxy (vite.config.ts -> :8000).
+  // In production (Render static site), fall back reliably to the live cloud backend.
   BASE_URL: envBaseUrl ? envBaseUrl.replace(/\/+$/, '') : (isLocal ? '' : defaultProdUrl),
   PROCESS_ENDPOINT: '/analyze',
   HEALTH_ENDPOINT: '/api/health',
-  TIMEOUT_MS: 45000,
+  TIMEOUT_MS: 90000,
 };
 
 /**
@@ -28,26 +35,32 @@ export const API_CONFIG = {
  */
 export const SAMPLE_PRESETS = [
   {
-    id: 'clinical',
-    title: 'Clinical Prescription & Doctor Note',
-    tag: 'Medical Cursive',
-    description: 'Illegible physician script with rapid ligatures, dosages, and strike-through revisions.',
+    id: 'sample_01',
+    legacyId: 'clinical',
+    code: 'SAMPLE 01',
+    title: 'Difficult Handwriting',
+    tag: 'Clinical Ligatures',
+    description: 'Illegible physician cursive with rapid ligatures, medical shorthand, and ambiguous character boundaries.',
     sampleUrl: '/samples/sample_doctor_prescription.png',
     fileName: 'sample_doctor_prescription.png',
   },
   {
-    id: 'historical',
-    title: 'Messy Handwriting & Strikethrough Note',
-    tag: 'Degraded Script',
-    description: 'Challenging scrawl with physical strikethrough, dosage revisions, and clinical shorthand.',
+    id: 'sample_02',
+    legacyId: 'historical',
+    code: 'SAMPLE 02',
+    title: 'Revision Detection',
+    tag: 'Strikethrough Isolation',
+    description: 'Messy manuscript with pen strikethrough, dosage alterations, and superseded vs active instructions.',
     sampleUrl: '/samples/04_crossed_out_text.png',
     fileName: '04_crossed_out_text.png',
   },
   {
-    id: 'engineering',
-    title: 'Technical Metrics & Vital Signs Log',
-    tag: 'Technical Script',
-    description: 'Rapid handwritten numerals, blood pressure, lab values, and clinical measurement units.',
+    id: 'sample_03',
+    legacyId: 'engineering',
+    code: 'SAMPLE 03',
+    title: 'Numbers & Measurements',
+    tag: 'Technical Metrics',
+    description: 'Dense handwritten numerals, vital signs, lab metrics, and clinical units requiring precision.',
     sampleUrl: '/samples/08_numbers_and_metrics.png',
     fileName: '08_numbers_and_metrics.png',
   },
@@ -221,38 +234,82 @@ export async function processImage(imageSource, options = {}) {
     throw new Error('Invalid image source provided. Please provide a valid image file.');
   }
 
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), API_CONFIG.TIMEOUT_MS);
+  const endpoint = `${API_CONFIG.BASE_URL}${API_CONFIG.PROCESS_ENDPOINT}`;
+  const onStatusUpdate = typeof options.onStatusUpdate === 'function' ? options.onStatusUpdate : null;
+  const maxAttempts = 3;
+  let lastError = null;
 
-  try {
-    // Call FastAPI backend
-    const endpoint = `${API_CONFIG.BASE_URL}${API_CONFIG.PROCESS_ENDPOINT}`;
-    const res = await fetch(endpoint, {
-      method: 'POST',
-      body: formData,
-      signal: controller.signal,
-    });
-    clearTimeout(timeout);
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), API_CONFIG.TIMEOUT_MS);
 
-    if (!res.ok) {
-      let errDetail = res.statusText;
-      try {
-        const errJson = await res.json();
-        errDetail = errJson.detail || errJson.message || errDetail;
-      } catch (_) {}
-      throw new Error(`Backend error (${res.status}): ${errDetail}`);
+    try {
+      if (attempt > 1 && onStatusUpdate) {
+        onStatusUpdate(`Analysis engine is waking up — retrying connection (attempt ${attempt} of ${maxAttempts})...`);
+      }
+
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        body: formData,
+        signal: controller.signal,
+      });
+      clearTimeout(timeout);
+
+      if (!res.ok) {
+        let errDetail = res.statusText;
+        try {
+          const errJson = await res.json();
+          errDetail = errJson.detail || errJson.message || errDetail;
+        } catch (_) {}
+
+        // If gateway 502/503/504, server may be spinning up from cold sleep on Render
+        if ([502, 503, 504].includes(res.status) && attempt < maxAttempts) {
+          if (onStatusUpdate) {
+            onStatusUpdate('Analysis engine is waking up — retrying...');
+          }
+          await new Promise((r) => setTimeout(r, 4500));
+          continue;
+        }
+
+        throw new Error(`Analysis engine error (${res.status}): ${errDetail}`);
+      }
+
+      const backendData = await res.json();
+      return normalizePipelineResult(backendData, sourceName);
+    } catch (err) {
+      clearTimeout(timeout);
+      lastError = err;
+
+      if (err.name === 'AbortError') {
+        if (attempt < maxAttempts) {
+          if (onStatusUpdate) {
+            onStatusUpdate('Engine cold start detected — retrying request...');
+          }
+          await new Promise((r) => setTimeout(r, 3500));
+          continue;
+        }
+        throw new Error('Analysis request timed out. The handwriting engine took too long to respond.');
+      }
+
+      // If network fetch failed (server waking or CORS negotiation) and attempts remain
+      if (attempt < maxAttempts && (err.message?.includes('fetch') || err.message?.includes('NetworkError'))) {
+        if (onStatusUpdate) {
+          onStatusUpdate('Analysis engine is waking up — retrying...');
+        }
+        await new Promise((r) => setTimeout(r, 4500));
+        continue;
+      }
+
+      break;
     }
-
-    const backendData = await res.json();
-    return normalizePipelineResult(backendData, sourceName);
-  } catch (err) {
-    clearTimeout(timeout);
-    if (err.name === 'AbortError') {
-      throw new Error('Analysis request timed out. The handwriting engine took too long to respond.');
-    }
-    // Re-throw actual error — NEVER substitute fake demo responses
-    throw err;
   }
+
+  // Helpful, judge-appropriate error messaging without developer stack traces
+  if (lastError?.message?.includes('Failed to fetch') || lastError?.message?.includes('NetworkError')) {
+    throw new Error('CRY NOVA could not reach the analysis engine. The remote server may still be initializing.');
+  }
+
+  throw lastError || new Error('CRY NOVA could not reach the analysis engine.');
 }
 
 /**

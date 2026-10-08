@@ -64,12 +64,24 @@ SUPPORTED_EXTENSIONS = {
     ".tif",
 }
 
-# Parse CORS Origins
-_raw_origins = os.getenv(
-    "ALLOWED_ORIGINS",
-    "http://localhost:3000,http://localhost:5173,http://localhost:8080,http://127.0.0.1:3000,http://127.0.0.1:5173,http://127.0.0.1:8080,http://localhost:8000,http://127.0.0.1:8000",
-)
-allowed_origins: List[str] = [orig.strip() for orig in _raw_origins.split(",") if orig.strip()]
+# Parse CORS Origins - Explicitly include production Render URLs and localhost ports
+DEFAULT_ALLOWED_ORIGINS = [
+    "https://crynova-hacknex-frontend.onrender.com",
+    "https://crynova-hacknex.onrender.com",
+    "http://localhost:3000",
+    "http://localhost:5173",
+    "http://localhost:8080",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:8080",
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+]
+
+_raw_origins = os.getenv("ALLOWED_ORIGINS", "")
+_custom_origins = [orig.strip() for orig in _raw_origins.split(",") if orig.strip()]
+# Merge without duplicates, preserving order
+allowed_origins: List[str] = list(dict.fromkeys(DEFAULT_ALLOWED_ORIGINS + _custom_origins))
 
 # Initialize FastAPI application
 app = FastAPI(
