@@ -125,9 +125,13 @@ class HandwritingPipeline:
             applied_filters = ["preprocessing_bypassed_ablation"]
 
         # ---------------------------------------------------------
-        # STAGE 2: OCR / HTR RECOGNITION
         # ---------------------------------------------------------
-        raw_ocr_text, segments, initial_conf = self.htr_engine.recognize(ocr_input_img)
+        # STAGE 2: OCR / HTR RECOGNITION (MULTI-PASS STRATEGY)
+        # ---------------------------------------------------------
+        variants = self.preprocessor.generate_variants(ocr_input_img) if config.use_preprocessing else {}
+        raw_ocr_text, segments, initial_conf, multi_pass_info = self.htr_engine.recognize_multi_pass(
+            ocr_input_img, variants
+        )
 
         # ---------------------------------------------------------
         # STAGE 3: VLM VISUAL REASONING (VISUAL EVIDENCE > OCR GUESS)
@@ -205,7 +209,8 @@ class HandwritingPipeline:
                 correctionUsed=config.use_correction,
                 uncertaintyEngineUsed=config.use_uncertainty,
                 preprocessingApplied=applied_filters,
-                processingTimeMs=elapsed_ms
+                processingTimeMs=elapsed_ms,
+                multiPassInfo=multi_pass_info
             ),
             rawOcrText=raw_ocr_text,
             vlmAnalysis=vlm_data.get("visual_observations"),

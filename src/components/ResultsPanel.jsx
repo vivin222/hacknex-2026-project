@@ -18,6 +18,7 @@ import ConfidenceBadge from './ConfidenceBadge';
 import UncertaintyPanel from './UncertaintyPanel';
 import MarginNotes from './MarginNotes';
 import CrossedOutPanel from './CrossedOutPanel';
+import IntelligencePanel from './IntelligencePanel';
 
 /**
  * ResultsPanel Component
@@ -37,6 +38,8 @@ export default function ResultsPanel({
   const [editableText, setEditableText] = useState(resultData.text || '');
   const [copied, setCopied] = useState(false);
   const [selectedRegionId, setSelectedRegionId] = useState(null);
+  const [selectedBbox, setSelectedBbox] = useState(null);
+  const [hoveredBbox, setHoveredBbox] = useState(null);
   const [showRawOcr, setShowRawOcr] = useState(false);
   const [activeTab, setActiveTab] = useState('uncertainty'); // 'uncertainty' | 'marginalia' | 'raw'
 
@@ -63,6 +66,36 @@ export default function ResultsPanel({
     const link = document.createElement('a');
     link.href = url;
     link.download = `digitized_${originalFilename.replace(/\.[^/.]+$/, '')}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  // Export structured analysis as JSON
+  const handleExportJson = () => {
+    const exportPayload = {
+      filename: originalFilename,
+      digitizedText: editableText,
+      overallConfidence: resultData.overallConfidence,
+      reviewSummary: resultData.reviewSummary,
+      flags: resultData.flags,
+      entities: resultData.entities,
+      claims: resultData.claims,
+      measurements: resultData.measurements,
+      timeline: resultData.timeline,
+      conflicts: resultData.conflicts,
+      provenance: resultData.provenance,
+      uncertainRegions: resultData.uncertainRegions,
+      segments: resultData.segments,
+      processingInfo: resultData.processingInfo,
+      exportedAt: new Date().toISOString(),
+    };
+    const blob = new Blob([JSON.stringify(exportPayload, null, 2)], { type: 'application/json;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `digitized_${originalFilename.replace(/\.[^/.]+$/, '')}.json`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -131,16 +164,21 @@ export default function ResultsPanel({
               imageUrl={originalImageUrl}
               title="Input Manuscript"
               caption={`Resolution: ${resultData.processingInfo?.resolutionDpi || 300} DPI • Contrast: ${resultData.processingInfo?.contrastRatio || 'N/A'}`}
+              segments={resultData.segments || []}
+              selectedBbox={selectedBbox}
+              hoveredBbox={hoveredBbox}
+              onSelectSegment={(seg) => setSelectedBbox(seg?.bbox || null)}
+              onHoverSegment={(seg) => setHoveredBbox(seg?.bbox || null)}
             />
           </div>
 
           {/* Preprocessing info card */}
           {resultData.processingInfo && (
-            <div className="mt-3 p-3 bg-slate-900/70 border border-slate-800/80 rounded-xl text-xs">
-              <div className="flex items-center justify-between font-mono text-[11px] text-slate-400 mb-1.5">
+            <div className="mt-3 p-3 bg-slate-900/70 border border-slate-800/80 rounded-xl text-xs space-y-2">
+              <div className="flex items-center justify-between font-mono text-[11px] text-slate-400">
                 <span className="flex items-center gap-1.5 text-slate-300">
                   <Sliders className="w-3 h-3 text-indigo-400" />
-                  Engine Preprocessing Applied:
+                  Engine Preprocessing:
                 </span>
                 <span className="text-slate-500">
                   {resultData.processingInfo.processingTimeMs}ms latency
@@ -156,6 +194,21 @@ export default function ResultsPanel({
                   </span>
                 ))}
               </div>
+              {resultData.processingInfo.multiPassInfo && (
+                <div className="pt-2 border-t border-slate-800/60 flex items-center justify-between text-[11px] font-mono">
+                  <span className="text-emerald-400">
+                    Multi-Pass HTR ({resultData.processingInfo.multiPassInfo.passes_evaluated || 3} variants)
+                  </span>
+                  <span className="text-slate-300">
+                    Selected: <span className="text-indigo-300 font-semibold">{resultData.processingInfo.multiPassInfo.selected_pass}</span>
+                    {resultData.processingInfo.multiPassInfo.confidence_gain > 0 && (
+                      <span className="text-emerald-400 ml-1">
+                        (+{(resultData.processingInfo.multiPassInfo.confidence_gain * 100).toFixed(1)}% conf)
+                      </span>
+                    )}
+                  </span>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -238,13 +291,24 @@ export default function ResultsPanel({
 
                 <button
                   type="button"
+                  onClick={handleExportJson}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700/80 transition-colors"
+                  title="Export complete analysis payload as .json file"
+                  aria-label="Export JSON"
+                >
+                  <FileDown className="w-3 h-3 text-indigo-400" />
+                  <span>JSON</span>
+                </button>
+
+                <button
+                  type="button"
                   onClick={handleExportText}
                   className="inline-flex items-center gap-1.5 px-3 py-1 rounded text-xs bg-indigo-600 hover:bg-indigo-500 text-white font-medium shadow transition-colors"
                   title="Export digitized text as .txt file"
                   aria-label="Export text"
                 >
                   <Download className="w-3 h-3" />
-                  <span>Export</span>
+                  <span>Export TXT</span>
                 </button>
               </div>
             </div>
@@ -279,15 +343,19 @@ export default function ResultsPanel({
                       <button
                         key={region.id}
                         type="button"
-                        onClick={() => setSelectedRegionId(isSelected ? null : region.id)}
+                        onClick={() => {
+                          const nextSelect = isSelected ? null : region.id;
+                          setSelectedRegionId(nextSelect);
+                          setSelectedBbox(nextSelect ? region.bbox : null);
+                        }}
                         className={`text-[11px] font-mono px-2 py-0.5 rounded-full border transition-all whitespace-nowrap flex items-center gap-1 ${
                           isSelected
-                            ? 'bg-amber-500 text-slate-950 font-bold border-amber-400'
+                            ? 'bg-amber-500 text-slate-950 font-bold border-amber-400 shadow'
                             : inText
                             ? 'bg-amber-950/40 text-amber-300 border-amber-500/30 hover:border-amber-400'
                             : 'bg-slate-800 text-slate-400 border-slate-700 line-through opacity-70'
                         }`}
-                        title={`Click to focus: "${region.text}" (${Math.round(region.confidence * 100)}% - ${region.reason})`}
+                        title={`Click to focus on image: "${region.text}" (${Math.round(region.confidence * 100)}% - ${region.reason})`}
                       >
                         <span>{region.text}</span>
                         <span className="text-[9px] opacity-75">
@@ -323,6 +391,20 @@ export default function ResultsPanel({
           </div>
         </div>
       </div>
+
+      {/* SEMANTIC INTELLIGENCE, ENTITIES, PROVENANCE & CONFLICT DETECTION */}
+      <IntelligencePanel
+        entities={resultData.entities}
+        claims={resultData.claims}
+        measurements={resultData.measurements}
+        timeline={resultData.timeline}
+        conflicts={resultData.conflicts}
+        flags={resultData.flags}
+        reviewSummary={resultData.reviewSummary}
+        filename={originalFilename}
+        onHoverBbox={(bbox) => setHoveredBbox(bbox)}
+        onSelectBbox={(bbox) => setSelectedBbox(bbox)}
+      />
 
       {/* CORE AUDITING PANELS SECTION (Phase 6, 7, 8) */}
       <div className="pt-4 border-t border-slate-800/80">
@@ -371,7 +453,10 @@ export default function ResultsPanel({
             <UncertaintyPanel
               uncertainRegions={resultData.uncertainRegions}
               activeRegionId={selectedRegionId}
-              onSelectRegion={(reg) => setSelectedRegionId(reg.id)}
+              onSelectRegion={(reg) => {
+                setSelectedRegionId(reg.id);
+                if (reg.bbox) setSelectedBbox(reg.bbox);
+              }}
               onApplyAlternative={handleApplyAlternative}
             />
           </div>

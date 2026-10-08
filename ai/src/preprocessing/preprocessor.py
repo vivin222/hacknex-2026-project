@@ -205,3 +205,41 @@ class ImagePreprocessor:
 
         debug_artifacts["final_preprocessed"] = current.copy()
         return original, current, applied_ops, debug_artifacts
+
+    @staticmethod
+    def sharpen(img: np.ndarray, amount: float = 1.2) -> np.ndarray:
+        """
+        Unsharp masking filter to crispen faint cursive strokes.
+        """
+        if len(img.shape) == 3:
+            gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        else:
+            gray = img
+        blurred = cv2.GaussianBlur(gray, (0, 0), 2.0)
+        sharpened = cv2.addWeighted(gray, 1.0 + amount, blurred, -amount, 0)
+        return sharpened
+
+    @staticmethod
+    def adaptive_threshold(img: np.ndarray) -> np.ndarray:
+        """
+        Gaussian adaptive thresholding to separate ink strokes from textured or stained paper.
+        """
+        if len(img.shape) == 3:
+            gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        else:
+            gray = img
+        return cv2.adaptiveThreshold(
+            gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 21, 10
+        )
+
+    def generate_variants(self, base_preprocessed: np.ndarray) -> Dict[str, np.ndarray]:
+        """
+        Generates candidate preprocessing variants for multi-pass OCR comparison.
+        """
+        variants = {
+            "standard_enhanced": base_preprocessed,
+            "sharpened_contrast": self.sharpen(base_preprocessed, amount=1.2),
+            "adaptive_binary": self.adaptive_threshold(base_preprocessed),
+        }
+        return variants
+

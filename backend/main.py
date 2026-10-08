@@ -4,14 +4,21 @@ Member 3 — Udhayan — Backend/API Engineer
 LAP 2 — BACKEND ONLY.
 """
 
-from __future__ import annotations
-
 import io
 import logging
 import os
+import sys
 import tempfile
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
+
+# Ensure both backend root and repo root are in sys.path
+_backend_dir = Path(__file__).resolve().parent
+if str(_backend_dir) not in sys.path:
+    sys.path.insert(0, str(_backend_dir))
+_repo_dir = _backend_dir.parent
+if str(_repo_dir) not in sys.path:
+    sys.path.insert(0, str(_repo_dir))
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, File, HTTPException, Request, UploadFile, status
@@ -19,7 +26,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from PIL import Image, UnidentifiedImageError
 
-from services.ai_service import process_image
+try:
+    from services.ai_service import process_image
+except ImportError:
+    from backend.services.ai_service import process_image
 
 # Load environment configuration if available
 load_dotenv()
@@ -108,29 +118,16 @@ async def health_check() -> Dict[str, str]:
     }
 
 
-@app.post("/api/process", summary="Process Handwritten Image")
-async def process_handwritten_image(
-    image: UploadFile = File(..., description="Handwritten document image file (JPEG, PNG, WEBP, BMP, TIFF)"),
-) -> Dict[str, Any]:
-    """Accept and validate an uploaded handwritten image, then route to the AI adapter.
-
-    Validations:
-    - Image file is provided and not empty
-    - Supported MIME type and file extension
-    - File size within allowed limit (default 10MB)
-    - Valid non-corrupted image binary
-
-    Returns:
-        Canonical JSON result compatible with Vivin's AI pipeline contract.
-    """
-    if not image or not image.filename:
+async def _handle_uploaded_image(upload: UploadFile) -> Dict[str, Any]:
+    """Validate uploaded image file and route to real AI handwriting stack."""
+    if not upload or not upload.filename:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Missing image file in upload request.",
         )
 
     # 1. Validate file extension
-    original_filename = image.filename
+    original_filename = upload.filename
     ext = Path(original_filename).suffix.lower()
     if ext not in SUPPORTED_EXTENSIONS:
         raise HTTPException(
@@ -142,7 +139,7 @@ async def process_handwritten_image(
         )
 
     # 2. Validate MIME type if reported
-    content_type = (image.content_type or "").lower()
+    content_type = (upload.content_type or "").lower()
     if content_type and content_type not in SUPPORTED_MIME_TYPES and content_type != "application/octet-stream":
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -154,7 +151,7 @@ async def process_handwritten_image(
 
     # 3. Read content and validate file size
     try:
-        content = await image.read()
+        content = await upload.read()
     except Exception as read_err:
         logger.error(f"Failed to read uploaded file: {read_err}")
         raise HTTPException(
@@ -192,14 +189,13 @@ async def process_handwritten_image(
     # 5. Temporarily save image safely for adapter processing
     temp_file = None
     try:
-        # Create a secure temporary file with the appropriate extension
         with tempfile.NamedTemporaryFile(delete=False, suffix=ext) as tf:
             tf.write(content)
             temp_file_path = tf.name
             temp_file = temp_file_path
 
-        # 6. Delegate to the AI Service adapter
-        result = process_image(temp_file_path)
+        # 6. Delegate to the AI Service adapter with actual image path and real filename
+        result = process_image(temp_file_path, filename=original_filename)
         return result
 
     except HTTPException:
@@ -217,3 +213,38 @@ async def process_handwritten_image(
                 os.remove(temp_file)
             except OSError as cleanup_err:
                 logger.warning(f"Could not remove temp file {temp_file}: {cleanup_err}")
+
+
+@app.post("/analyze", summary="Analyze Handwritten Document (HNX26EPS04 Core)")
+async def analyze_document(
+    file: Optional[UploadFile] = File(None, description="Handwritten document image file ('file' form field)"),
+    image: Optional[UploadFile] = File(None, description="Handwritten document image file ('image' form field)"),
+) -> Dict[str, Any]:
+    """Primary analysis endpoint for HNX26EPS04.
+
+    Accepts multipart/form-data with image under 'file' or 'image' field.
+    Inspects actual image content, executes Vivin AI pipeline, and extracts
+    claims, entities, measurements, timeline, conflicts, and provenance.
+    """
+    target_upload = file or image
+    if not target_upload:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Missing image file in request. Provide file in 'file' or 'image' field.",
+        )
+    return await _handle_uploaded_image(target_upload)
+
+
+@app.post("/api/process", summary="Process Handwritten Image (Compatibility Route)")
+async def process_handwritten_image(
+    file: Optional[UploadFile] = File(None, description="Handwritten image file ('file' form field)"),
+    image: Optional[UploadFile] = File(None, description="Handwritten image file ('image' form field)"),
+) -> Dict[str, Any]:
+    """Backward-compatible endpoint routing to the core analyzer."""
+    target_upload = file or image
+    if not target_upload:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Missing image file in upload request.",
+        )
+    return await _handle_uploaded_image(target_upload)

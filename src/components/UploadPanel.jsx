@@ -34,7 +34,7 @@ export default function UploadPanel({
 }) {
   const [isDragging, setIsDragging] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
-  const [selectedPresetId, setSelectedPresetId] = useState('clinical');
+  const [selectedPresetId, setSelectedPresetId] = useState(null);
   const fileInputRef = useRef(null);
 
   const handleDragOver = (e) => {
@@ -78,16 +78,72 @@ export default function UploadPanel({
     onFileSelect(file, URL.createObjectURL(file));
   };
 
-  const handleSelectPreset = (preset) => {
+  const handleSelectPreset = async (preset) => {
     setErrorMsg('');
     setSelectedPresetId(preset.id);
-    const imageUrl = SAMPLE_IMAGES[preset.id] || SAMPLE_IMAGES.clinical;
-    onFileSelect(null, imageUrl, preset.id);
+
+    const sampleUrl = preset.sampleUrl || SAMPLE_IMAGES[preset.id] || '/samples/sample_doctor_prescription.png';
+    const fileName = preset.fileName || (sampleUrl.split('/').pop()) || `${preset.id}_sample.png`;
+
+    try {
+      // 1. Load the actual image asset as binary using fetch()
+      const res = await fetch(sampleUrl);
+
+      // 2. Verify the fetch response is successful
+      if (!res.ok) {
+        throw new Error(`Failed to load sample image (HTTP ${res.status}: ${res.statusText})`);
+      }
+
+      // 3. Convert response to Blob
+      const blob = await res.blob();
+
+      // 4. Verify Blob has a valid image MIME type
+      const mimeType = blob.type || 'image/png';
+      if (!mimeType.startsWith('image/')) {
+        throw new Error(`Invalid MIME type for sample asset: ${mimeType}`);
+      }
+
+      // 5. Create a real File from that Blob with the correct filename and MIME type
+      const file = new File([blob], fileName, { type: mimeType });
+
+      // Temporary console diagnostics for sample upload
+      console.log('[Sample Upload Diagnostic]', {
+        'sample URL': sampleUrl,
+        'HTTP status': res.status,
+        'Blob size': blob.size,
+        'Blob MIME type': blob.type,
+        'File name': file.name,
+        'File MIME type': file.type,
+        'File size': file.size,
+      });
+
+      // 6. Pass that File through the EXACT same upload/analyze function used by normal user file upload
+      const objectUrl = URL.createObjectURL(file);
+      onFileSelect(file, objectUrl, preset.id);
+
+      // Auto-trigger analysis for instant demo execution if onProcess is provided
+      if (onProcess) {
+        onProcess({ file, presetId: preset.id });
+      }
+    } catch (err) {
+      console.error('[Sample Upload Error]', err);
+      setErrorMsg(`Could not load sample: ${err.message}`);
+      setSelectedPresetId(null);
+    }
+  };
+
+  const handleClearSelected = () => {
+    setSelectedPresetId(null);
+    setErrorMsg('');
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+    onClear();
   };
 
   const handleTriggerProcess = () => {
     if (!previewUrl && !selectedFile) {
-      setErrorMsg('Please upload an image or choose one of the challenging test samples below.');
+      setErrorMsg('Please upload a handwriting image or choose one of the challenging test samples below.');
       return;
     }
     setErrorMsg('');
@@ -183,7 +239,7 @@ export default function UploadPanel({
 
               <button
                 type="button"
-                onClick={onClear}
+                onClick={handleClearSelected}
                 className="inline-flex items-center gap-1 text-xs text-slate-400 hover:text-rose-400 hover:bg-slate-800 px-2 py-1 rounded transition-colors"
                 title="Remove selected image"
               >

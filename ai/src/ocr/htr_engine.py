@@ -123,3 +123,56 @@ class HTREngine:
         )
 
         return raw_text, ordered_segments, round(avg_conf, 4)
+
+    def recognize_multi_pass(
+        self,
+        primary_img: np.ndarray,
+        variants: Optional[Dict[str, np.ndarray]] = None
+    ) -> Tuple[str, List[Segment], float, Dict[str, Any]]:
+        """
+        Executes multi-pass OCR recognition across preprocessing candidates:
+        - Evaluates primary pass on baseline preprocessed image.
+        - If primary confidence is high (>= 0.84) and healthy text length exists, accepts immediately.
+        - If handwriting difficulty or degradation is detected, runs on candidate variants.
+        - Selects the optimal pass via evidence score (confidence & character yield).
+        - Preserves exact spatial bounding boxes and segment confidences from winning pass.
+        """
+        raw_text, segments, avg_conf = self.recognize(primary_img)
+
+        # Fast path for clear documents
+        if avg_conf >= 0.84 or not variants or len(segments) >= 6:
+            return raw_text, segments, avg_conf, {
+                "passesEvaluated": 1,
+                "selectedPass": "standard_enhanced",
+                "passConfidences": {"standard_enhanced": avg_conf},
+            }
+
+        best_text = raw_text
+        best_segments = segments
+        best_conf = avg_conf
+        best_pass_name = "standard_enhanced"
+        pass_scores: Dict[str, float] = {"standard_enhanced": avg_conf}
+
+        best_score = (avg_conf * 0.6) + (min(1.0, len(raw_text) / 120.0) * 0.4)
+
+        for name, var_img in variants.items():
+            if name == "standard_enhanced":
+                continue
+            v_text, v_segs, v_conf = self.recognize(var_img)
+            pass_scores[name] = v_conf
+            v_score = (v_conf * 0.6) + (min(1.0, len(v_text) / 120.0) * 0.4)
+
+            # Supersede only when demonstrably superior
+            if v_score > (best_score + 0.04):
+                best_score = v_score
+                best_text = v_text
+                best_segments = v_segs
+                best_conf = v_conf
+                best_pass_name = name
+
+        return best_text, best_segments, best_conf, {
+            "passesEvaluated": len(pass_scores),
+            "selectedPass": best_pass_name,
+            "passConfidences": pass_scores,
+        }
+

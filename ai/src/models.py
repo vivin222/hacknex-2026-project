@@ -50,6 +50,7 @@ class ProcessingInfo(BaseModel):
         default_factory=list, description="Ordered list of image preprocessors applied"
     )
     processingTimeMs: float = Field(default=0.0, description="Total pipeline execution duration in milliseconds")
+    multiPassInfo: Optional[Dict[str, Any]] = Field(default=None, description="Multi-pass recognition candidate evaluation metadata")
 
 
 class PipelineConfig(BaseModel):
