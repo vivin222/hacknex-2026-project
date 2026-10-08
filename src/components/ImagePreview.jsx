@@ -35,6 +35,7 @@ export default function ImagePreview({
 }) {
   const [zoom, setZoom] = useState(1);
   const [contrastMode, setContrastMode] = useState(false);
+  const [heatmapMode, setHeatmapMode] = useState(false);
   const [showOverlays, setShowOverlays] = useState(true);
   const [naturalSize, setNaturalSize] = useState({ width: 0, height: 0 });
   const [hoveredIndex, setHoveredIndex] = useState(null);
@@ -91,6 +92,22 @@ export default function ImagePreview({
           >
             <Layers className="w-3.5 h-3.5" />
             <span className="text-[11px] font-medium hidden md:inline">Boxes</span>
+          </button>
+
+          {/* Heatmap Toggle */}
+          <button
+            type="button"
+            onClick={() => setHeatmapMode(!heatmapMode)}
+            className={`px-2 py-1 rounded text-xs flex items-center gap-1 transition-colors ${
+              heatmapMode
+                ? 'bg-emerald-50 text-emerald-700 border border-emerald-300 font-semibold'
+                : 'text-[#737373] hover:text-[#171717] hover:bg-[#EAE3D2]'
+            }`}
+            title="Toggle Visual Confidence Heatmap"
+            aria-label="Toggle Confidence Heatmap"
+          >
+            <Activity className="w-3.5 h-3.5" />
+            <span className="text-[11px] font-medium hidden md:inline">Heatmap</span>
           </button>
 
           {/* Contrast Mode Toggle */}
@@ -205,22 +222,38 @@ export default function ImagePreview({
 
                   const isHovered = hoveredIndex === idx;
 
-                  // Locked Colors:
+                  // Locked Colors & Heatmap Modulation:
                   let strokeColor = '#2563EB'; // Primary Blue for confident text
                   let fillColor = 'rgba(37, 99, 235, 0.08)';
                   let strokeDash = undefined;
 
-                  if (seg.is_crossed_out) {
-                    strokeColor = '#DC2626'; // Retraction Red
-                    fillColor = 'rgba(220, 38, 38, 0.20)';
-                  } else if (seg.is_margin_note) {
-                    strokeColor = '#06B6D4'; // AI Cyan for margin notes
-                    strokeDash = '6 3';
-                    fillColor = 'rgba(6, 182, 212, 0.12)';
-                  } else if (seg.uncertain || (seg.confidence && seg.confidence < 0.75)) {
-                    strokeColor = '#D97706'; // Human Review Amber
-                    strokeDash = '5 3';
-                    fillColor = 'rgba(217, 119, 6, 0.18)';
+                  if (heatmapMode) {
+                    if (seg.is_crossed_out) {
+                      strokeColor = '#DC2626';
+                      fillColor = 'rgba(220, 38, 38, 0.40)';
+                    } else if (seg.confidence >= 0.85) {
+                      strokeColor = '#16A34A';
+                      fillColor = 'rgba(34, 197, 94, 0.35)';
+                    } else if (seg.confidence >= 0.65) {
+                      strokeColor = '#D97706';
+                      fillColor = 'rgba(217, 119, 6, 0.40)';
+                    } else {
+                      strokeColor = '#DC2626';
+                      fillColor = 'rgba(220, 38, 38, 0.45)';
+                    }
+                  } else {
+                    if (seg.is_crossed_out) {
+                      strokeColor = '#DC2626'; // Retraction Red
+                      fillColor = 'rgba(220, 38, 38, 0.20)';
+                    } else if (seg.is_margin_note) {
+                      strokeColor = '#06B6D4'; // AI Cyan for margin notes
+                      strokeDash = '6 3';
+                      fillColor = 'rgba(6, 182, 212, 0.12)';
+                    } else if (seg.uncertain || (seg.confidence && seg.confidence < 0.75)) {
+                      strokeColor = '#D97706'; // Human Review Amber
+                      strokeDash = '5 3';
+                      fillColor = 'rgba(217, 119, 6, 0.18)';
+                    }
                   }
 
                   if (isTargeted) {

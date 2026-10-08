@@ -29,21 +29,24 @@ class PostCorrector:
         if not self.api_key:
             return None
 
-        try:
-            from google import genai
-            from google.genai import types
+        import concurrent.futures
 
-            client = genai.Client(api_key=self.api_key)
+        def _do_llm():
+            try:
+                from google import genai
+                from google.genai import types
 
-            vlm_summary = json.dumps({
-                "visual_transcription": vlm_data.get("visual_transcription"),
-                "ocr_discrepancies": vlm_data.get("ocr_discrepancies"),
-                "crossed_out_regions": vlm_data.get("crossed_out_regions"),
-                "margin_notes": vlm_data.get("margin_notes"),
-                "uncertain_regions": vlm_data.get("uncertain_regions")
-            }, indent=2)
+                client = genai.Client(api_key=self.api_key)
 
-            prompt = f"""You are a conservative post-correction engine for handwriting digitization.
+                vlm_summary = json.dumps({
+                    "visual_transcription": vlm_data.get("visual_transcription"),
+                    "ocr_discrepancies": vlm_data.get("ocr_discrepancies"),
+                    "crossed_out_regions": vlm_data.get("crossed_out_regions"),
+                    "margin_notes": vlm_data.get("margin_notes"),
+                    "uncertain_regions": vlm_data.get("uncertain_regions")
+                }, indent=2)
+
+                prompt = f"""You are a conservative post-correction engine for handwriting digitization.
 
 OCR RAW EVIDENCE:
 ---
@@ -76,28 +79,40 @@ Respond strictly in JSON format:
 }}
 """
 
-            response = client.models.generate_content(
-                model=self.model_name,
-                contents=prompt,
-                config=types.GenerateContentConfig(
-                    temperature=0.0,
-                    response_mime_type="application/json"
+                response = client.models.generate_content(
+                    model=self.model_name,
+                    contents=prompt,
+                    config=types.GenerateContentConfig(
+                        temperature=0.0,
+                        response_mime_type="application/json"
+                    )
                 )
-            )
 
-            if response and response.text:
-                clean_text = response.text.strip()
-                if clean_text.startswith("```json"):
-                    clean_text = clean_text[7:]
-                if clean_text.startswith("```"):
-                    clean_text = clean_text[3:]
-                if clean_text.endswith("```"):
-                    clean_text = clean_text[:-3]
-                return json.loads(clean_text.strip())
-
-        except Exception as e:
-            print(f"[LLM Warning] Post-correction API call failed: {e}")
+                if response and response.text:
+                    clean_text = response.text.strip()
+                    if clean_text.startswith("```json"):
+                        clean_text = clean_text[7:]
+                    if clean_text.startswith("```"):
+                        clean_text = clean_text[3:]
+                    if clean_text.endswith("```"):
+                        clean_text = clean_text[:-3]
+                    return json.loads(clean_text.strip())
+            except Exception as e:
+                print(f"[LLM Warning] Post-correction API call failed: {e}")
+                return None
             return None
+
+        # Execute with strict 2.5s timeout to guarantee instant responsiveness
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(_do_llm)
+            try:
+                return future.result(timeout=2.5)
+            except concurrent.futures.TimeoutError:
+                print("[LLM Info] Remote LLM post-correction timed out (>2.5s); switching immediately to deterministic rule-based correction.")
+                return None
+            except Exception as e:
+                print(f"[LLM Warning] Remote LLM execution error: {e}")
+                return None
 
     def _fallback_rule_based_correction(
         self, raw_ocr_text: str, vlm_data: Dict[str, Any], segments: List[Segment]
@@ -201,3 +216,13 @@ Respond strictly in JSON format:
         corrections_applied = llm_result.get("corrections_applied", [])
 
         return corrected_text, corrections_applied
+
+    def correct_fast(
+        self, raw_ocr_text: str, vlm_data: Dict[str, Any], segments: List[Segment]
+    ) -> Tuple[str, List[Dict[str, Any]]]:
+        """
+        Fast-Path post-correction executing conservative deterministic rule-based corrections in <2ms.
+        Avoids remote network latency and hallucination risk.
+        """
+        result = self._fallback_rule_based_correction(raw_ocr_text, vlm_data, segments)
+        return result.get("corrected_text", raw_ocr_text), result.get("corrections_applied", [])

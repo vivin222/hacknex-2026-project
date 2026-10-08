@@ -117,43 +117,77 @@ class HandwritingPipeline:
         applied_filters: List[str] = []
         debug_artifacts: Dict[str, np.ndarray] = {}
 
+        # ---------------------------------------------------------
+        # STAGE 1: IMAGE PREPROCESSING (FAST ADAPTIVE ENHANCEMENT)
+        # ---------------------------------------------------------
+        t_prep_start = time.perf_counter()
         if config.use_preprocessing:
             original_img, ocr_input_img, applied_filters, debug_artifacts = self.preprocessor.process(image_path)
         else:
             original_img = self.preprocessor.load_image(image_path)
             ocr_input_img = original_img.copy()
             applied_filters = ["preprocessing_bypassed_ablation"]
+        prep_ms = round((time.perf_counter() - t_prep_start) * 1000.0, 2)
 
         # ---------------------------------------------------------
+        # STAGE 2: PRIMARY OCR & FAST-PATH SELECTION
         # ---------------------------------------------------------
-        # STAGE 2: OCR / HTR RECOGNITION (MULTI-PASS STRATEGY)
-        # ---------------------------------------------------------
-        variants = self.preprocessor.generate_variants(ocr_input_img) if config.use_preprocessing else {}
-        raw_ocr_text, segments, initial_conf, multi_pass_info = self.htr_engine.recognize_multi_pass(
-            ocr_input_img, variants
-        )
+        t_ocr_start = time.perf_counter()
+        # Fast Path Rule: Always run primary OCR first
+        raw_ocr_text, segments, initial_conf = self.htr_engine.recognize(ocr_input_img)
+
+        # Fast-path condition: Good recognition confidence (>= 0.78) and extracted tokens exist
+        is_fast_path = (initial_conf >= 0.78 and len(segments) > 0)
+
+        if is_fast_path or not config.use_preprocessing:
+            multi_pass_info = {
+                "passesEvaluated": 1,
+                "selectedPass": "standard_enhanced",
+                "passConfidences": {"standard_enhanced": initial_conf},
+                "fastPath": True,
+            }
+        else:
+            # Conditional multi-pass: Only evaluate secondary passes when primary confidence < 0.78
+            variants = self.preprocessor.generate_variants(ocr_input_img)
+            raw_ocr_text, segments, initial_conf, multi_pass_info = self.htr_engine.recognize_multi_pass(
+                ocr_input_img, variants
+            )
+            multi_pass_info["fastPath"] = False
+        ocr_ms = round((time.perf_counter() - t_ocr_start) * 1000.0, 2)
 
         # ---------------------------------------------------------
         # STAGE 3: VLM VISUAL REASONING (VISUAL EVIDENCE > OCR GUESS)
         # ---------------------------------------------------------
+        t_vis_start = time.perf_counter()
         vlm_data: Dict[str, Any] = {}
         if config.use_vlm:
-            vlm_data, segments = self.visual_reasoner.reason(original_img, segments, raw_ocr_text)
+            # Fast path uses deterministic CV stroke inspection (<10ms)
+            if is_fast_path:
+                vlm_data, segments = self.visual_reasoner.reason_fast(original_img, segments, raw_ocr_text)
+            else:
+                vlm_data, segments = self.visual_reasoner.reason(original_img, segments, raw_ocr_text)
         else:
             vlm_data = {"visual_observations": "VLM stage bypassed by ablation configuration"}
+        vis_ms = round((time.perf_counter() - t_vis_start) * 1000.0, 2)
 
         # ---------------------------------------------------------
-        # STAGE 4: CONTEXTUAL LLM POST-CORRECTION
+        # STAGE 4: CONTEXTUAL POST-CORRECTION
         # ---------------------------------------------------------
+        t_corr_start = time.perf_counter()
         corrections_applied: List[Dict[str, Any]] = []
         if config.use_correction:
-            final_text, corrections_applied = self.post_corrector.correct(raw_ocr_text, vlm_data, segments)
+            if is_fast_path:
+                final_text, corrections_applied = self.post_corrector.correct_fast(raw_ocr_text, vlm_data, segments)
+            else:
+                final_text, corrections_applied = self.post_corrector.correct(raw_ocr_text, vlm_data, segments)
         else:
             final_text = raw_ocr_text
+        corr_ms = round((time.perf_counter() - t_corr_start) * 1000.0, 2)
 
         # ---------------------------------------------------------
         # STAGE 5: UNCERTAINTY DETECTION ENGINE
         # ---------------------------------------------------------
+        t_unc_start = time.perf_counter()
         uncertain_regions: List[UncertainRegion] = []
         overall_conf = initial_conf
 
@@ -163,16 +197,28 @@ class HandwritingPipeline:
             )
         else:
             overall_conf = initial_conf
+        unc_ms = round((time.perf_counter() - t_unc_start) * 1000.0, 2)
 
         # Separate margin notes and crossed-out text for dedicated UI cards / review
         margin_notes = [s for s in segments if s.is_margin_note]
         crossed_out = [s for s in segments if s.is_crossed_out]
 
+        # Total pipeline latency
+        elapsed_ms = round((time.perf_counter() - t0) * 1000.0, 2)
+
+        stage_timings = {
+            "preprocessing_ms": prep_ms,
+            "ocr_ms": ocr_ms,
+            "visual_ms": vis_ms,
+            "correction_ms": corr_ms,
+            "uncertainty_ms": unc_ms,
+            "recognition_ms": round(prep_ms + ocr_ms, 2),
+            "total_ms": elapsed_ms,
+        }
+
         # ---------------------------------------------------------
         # STAGE 6: DEBUG ARTIFACT GENERATION
         # ---------------------------------------------------------
-        elapsed_ms = round((time.perf_counter() - t0) * 1000.0, 2)
-
         if config.debug_mode:
             debug_dir = Path(config.debug_output_dir)
             debug_vis_path = debug_dir / f"{image_path.stem}_annotated.png"
@@ -182,6 +228,7 @@ class HandwritingPipeline:
             debug_trace = {
                 "image": str(image_path),
                 "runtime_ms": elapsed_ms,
+                "stage_timings": stage_timings,
                 "applied_filters": applied_filters,
                 "raw_ocr": raw_ocr_text,
                 "vlm_data": vlm_data,
@@ -210,7 +257,8 @@ class HandwritingPipeline:
                 uncertaintyEngineUsed=config.use_uncertainty,
                 preprocessingApplied=applied_filters,
                 processingTimeMs=elapsed_ms,
-                multiPassInfo=multi_pass_info
+                multiPassInfo=multi_pass_info,
+                stage_timings=stage_timings
             ),
             rawOcrText=raw_ocr_text,
             vlmAnalysis=vlm_data.get("visual_observations"),

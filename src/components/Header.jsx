@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { PenTool, Activity, ShieldCheck, Database, Layers, Radio, Sparkles } from 'lucide-react';
+import { PenTool, Activity, ShieldCheck, Database, Layers, Radio, Sparkles, Terminal } from 'lucide-react';
 import { checkBackendHealth } from '../services/api';
 
 /**
@@ -8,23 +8,30 @@ import { checkBackendHealth } from '../services/api';
  * Project: HNX26EPS04 — Extreme Bad-Handwriting Digitizing Stack
  */
 export default function Header() {
-  const [backendStatus, setBackendStatus] = useState({ checked: false, online: false });
+  const [backendStatus, setBackendStatus] = useState({
+    checked: false,
+    online: false,
+    status: 'checking',
+    hostLabel: '',
+  });
 
   useEffect(() => {
     let isMounted = true;
-    checkBackendHealth().then((res) => {
-      if (isMounted) {
-        setBackendStatus({ checked: true, online: res.online, hostLabel: res.hostLabel });
-      }
-    });
-
-    const interval = setInterval(() => {
+    const performCheck = () => {
       checkBackendHealth().then((res) => {
         if (isMounted) {
-          setBackendStatus({ checked: true, online: res.online, hostLabel: res.hostLabel });
+          setBackendStatus({
+            checked: true,
+            online: res.online,
+            status: res.status || (res.online ? 'online' : 'offline'),
+            hostLabel: res.hostLabel || '',
+          });
         }
       });
-    }, 15000);
+    };
+
+    performCheck();
+    const interval = setInterval(performCheck, 12000);
 
     return () => {
       isMounted = false;
@@ -33,11 +40,11 @@ export default function Header() {
   }, []);
 
   return (
-    <header className="border-b border-[#D8CEBC] bg-[#FAF6EE]/95 backdrop-blur-md sticky top-0 z-30 shadow-xs">
+    <header className="border-b border-[#D8CEBC]/70 bg-[#FAF6EE]/95 backdrop-blur-md sticky top-0 z-30 shadow-xs">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         {/* Brand & Project Identifiers */}
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-[#171717] flex items-center justify-center text-[#F5F0E6] shadow-sm">
+          <div className="w-10 h-10 rounded-lg bg-[#171717] flex items-center justify-center text-[#F5F0E6] shadow-sm ring-1 ring-[#171717]/10">
             <PenTool className="w-5 h-5 text-[#2563EB]" />
           </div>
           <div>
@@ -57,35 +64,64 @@ export default function Header() {
         </div>
 
         {/* Workflow breadcrumb on medium+ displays */}
-        <div className="hidden lg:flex items-center gap-2 text-xs font-mono bg-[#EAE3D2]/70 px-3 py-1.5 rounded-full border border-[#D8CEBC]">
+        <div className="hidden lg:flex items-center gap-2 text-xs font-mono bg-[#EAE3D2]/70 px-3.5 py-1.5 rounded-full border border-[#D8CEBC]/80">
           <span className="text-[#171717] font-semibold">Physical Paper</span>
           <span className="text-[#A39986]">→</span>
-          <span className="text-[#2563EB] font-semibold">Digital Understanding</span>
+          <span className="text-[#2563EB] font-semibold">Fast Preprocess & Primary OCR</span>
           <span className="text-[#A39986]">→</span>
-          <span className="text-[#06B6D4] font-semibold">AI Intelligence</span>
+          <span className="text-[#06B6D4] font-semibold">Evidence-Linked AI</span>
         </div>
 
-        {/* Architecture & Live Telemetry Badge */}
+        {/* Real Backend Status Badge */}
         <div className="flex items-center gap-2">
-          {backendStatus.online ? (
+          {backendStatus.status === 'online' ? (
             <div
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-mono bg-blue-50 border border-blue-200 text-[#2563EB] shadow-xs"
-              title="FastAPI engine connected and active"
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-[11px] font-mono bg-emerald-50/90 border border-emerald-300 text-emerald-800 shadow-xs"
+              title="FastAPI engine active and ready"
             >
-              <span className="w-2 h-2 rounded-full bg-[#2563EB] animate-pulse" />
-              <span>Engine:</span>
-              <span className="font-semibold">
-                {backendStatus.hostLabel || 'Cloud Active'}
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-600"></span>
+              </span>
+              <span className="font-bold tracking-wide">ENGINE ONLINE</span>
+              {backendStatus.hostLabel && (
+                <span className="text-emerald-700/80 text-[10px] hidden sm:inline font-sans">
+                  ({backendStatus.hostLabel})
+                </span>
+              )}
+            </div>
+          ) : backendStatus.status === 'waking' ? (
+            <div
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-[11px] font-mono bg-amber-50 border border-amber-300 text-amber-900 shadow-xs"
+              title="Cloud server waking from cold standby..."
+            >
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+              </span>
+              <span className="font-bold tracking-wide">ENGINE WAKING</span>
+              <span className="text-amber-700/80 text-[10px] hidden md:inline font-sans">
+                (Standby spin-up)
+              </span>
+            </div>
+          ) : backendStatus.status === 'offline' ? (
+            <div
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-[11px] font-mono bg-rose-50 border border-rose-300 text-rose-800 shadow-xs"
+              title="Engine offline or initializing..."
+            >
+              <span className="w-2 h-2 rounded-full bg-rose-500" />
+              <span className="font-bold tracking-wide">ENGINE OFFLINE</span>
+              <span className="text-rose-600 text-[10px] hidden md:inline font-sans">
+                (Re-checking...)
               </span>
             </div>
           ) : (
             <div
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-mono bg-amber-50 border border-amber-200 text-[#D97706]"
-              title="Checking engine connectivity..."
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-[11px] font-mono bg-blue-50/70 border border-blue-200 text-[#2563EB]"
+              title="Verifying engine status..."
             >
-              <span className="w-2 h-2 rounded-full bg-[#D97706] animate-pulse" />
-              <span>Engine:</span>
-              <span className="font-medium">Connecting...</span>
+              <span className="w-2 h-2 rounded-full bg-[#2563EB] animate-pulse" />
+              <span className="font-medium">ENGINE CHECKING</span>
             </div>
           )}
         </div>

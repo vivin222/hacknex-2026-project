@@ -51,6 +51,7 @@ class ProcessingInfo(BaseModel):
     )
     processingTimeMs: float = Field(default=0.0, description="Total pipeline execution duration in milliseconds")
     multiPassInfo: Optional[Dict[str, Any]] = Field(default=None, description="Multi-pass recognition candidate evaluation metadata")
+    stage_timings: Optional[Dict[str, float]] = Field(default=None, description="Granular stage runtime breakdown in milliseconds")
 
 
 class PipelineConfig(BaseModel):
