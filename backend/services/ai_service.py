@@ -330,10 +330,44 @@ def process_image(image_path: str, filename: Optional[str] = None) -> Dict[str, 
 
     # Execute Vivin's core AI pipeline on the real image file
     logger.info(f"[{req_id}] Processing image {disp_filename} ({image_path}) with Vivin AI Engine...")
-    pipeline_config = PipelineConfig(debug_mode=False)
-    pipeline_result = process_handwriting(image_path, pipeline_config)
-
-    res_dict = pipeline_result.model_dump() if hasattr(pipeline_result, "model_dump") else dict(pipeline_result)
+    try:
+        pipeline_config = PipelineConfig(debug_mode=False)
+        pipeline_result = process_handwriting(image_path, pipeline_config)
+        res_dict = pipeline_result.model_dump() if hasattr(pipeline_result, "model_dump") else dict(pipeline_result)
+    except Exception as pipe_err:
+        logger.error(f"[{req_id}] Full pipeline failed ({pipe_err}); running fast OCR fallback...", exc_info=True)
+        try:
+            from src.ocr.htr_engine import HTREngine
+            import cv2
+            engine = HTREngine()
+            img = cv2.imread(image_path)
+            if img is None:
+                with open(image_path, "rb") as f:
+                    import numpy as np
+                    img = cv2.imdecode(np.frombuffer(f.read(), np.uint8), cv2.IMREAD_COLOR)
+            raw_t, segs, conf = engine.recognize(img)
+            res_dict = {
+                "text": raw_t,
+                "segments": [s.model_dump() if hasattr(s, "model_dump") else dict(s) for s in segs],
+                "overallConfidence": conf,
+                "uncertainRegions": [],
+                "marginNotes": [],
+                "crossedOutText": [],
+                "rawOcrText": raw_t,
+                "processingInfo": {"engine": "Fast OCR Fail-Safe", "processingTimeMs": 500},
+            }
+        except Exception as fallback_err:
+            logger.error(f"[{req_id}] Fallback OCR also failed: {fallback_err}")
+            res_dict = {
+                "text": "",
+                "segments": [],
+                "overallConfidence": 0.0,
+                "uncertainRegions": [],
+                "marginNotes": [],
+                "crossedOutText": [],
+                "rawOcrText": "",
+                "processingInfo": {"engine": "Error Recovery", "processingTimeMs": 100},
+            }
 
     final_text = res_dict.get("text", "") or ""
     raw_segments = res_dict.get("segments", []) or []

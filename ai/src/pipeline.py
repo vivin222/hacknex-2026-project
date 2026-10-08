@@ -122,7 +122,9 @@ class HandwritingPipeline:
         # ---------------------------------------------------------
         t_prep_start = time.perf_counter()
         if config.use_preprocessing:
-            original_img, ocr_input_img, applied_filters, debug_artifacts = self.preprocessor.process(image_path)
+            original_img, ocr_input_img, applied_filters, debug_artifacts = self.preprocessor.process(
+                image_path, store_artifacts=config.debug_mode
+            )
         else:
             original_img = self.preprocessor.load_image(image_path)
             ocr_input_img = original_img.copy()

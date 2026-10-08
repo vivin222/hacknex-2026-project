@@ -109,7 +109,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#F5F0E6] text-[#171717] selection:bg-[#2563EB] selection:text-white">
+    <div className="min-h-screen flex flex-col bg-[#050508] text-slate-100 selection:bg-red-600 selection:text-white">
       {/* Header */}
       <Header />
 
@@ -146,87 +146,91 @@ export default function App() {
           />
         )}
 
-        {/* State 4: Error State (Phase 17 — Clean, Judge-Appropriate, Zero Developer Leak) */}
+        {/* State 4: Hardened Error Recovery Screen (Never a blank page) */}
         {appState === 'ERROR' && (
-          <div className="w-full max-w-xl mx-auto my-12 p-8 bg-[#FAF6EE] border border-[#D8CEBC] rounded-xl shadow-md text-center space-y-6">
-            <div className="w-14 h-14 rounded-full bg-amber-50 border border-amber-200 text-[#D97706] mx-auto flex items-center justify-center">
-              <ShieldAlert className="w-7 h-7" />
+          <div className="w-full max-w-2xl mx-auto my-8 p-6 sm:p-8 bg-[#0c0c12] border border-red-900/60 rounded-2xl shadow-2xl shadow-black text-center space-y-6">
+            <div className="w-16 h-16 rounded-2xl bg-red-950/80 border border-red-800/50 text-red-400 mx-auto flex items-center justify-center shadow-lg shadow-red-950/50">
+              <AlertCircle className="w-8 h-8" />
             </div>
 
             <div className="space-y-2">
-              <span className="text-[11px] font-mono uppercase tracking-wider text-[#D97706] font-bold px-2.5 py-0.5 rounded-full bg-amber-100 border border-amber-300">
-                Engine Connection Notice
+              <span className="text-[11px] font-mono uppercase tracking-wider text-red-400 font-bold px-3 py-1 rounded-full bg-red-950/80 border border-red-900/60">
+                OCR Engine Notice
               </span>
-              <h3 className="text-xl font-bold text-[#171717]">
-                CRY NOVA could not reach the analysis engine.
+              <h3 className="text-xl font-bold text-white">
+                Handwriting Analysis Could Not Complete
               </h3>
-              <p className="text-xs text-[#525252] leading-relaxed max-w-md mx-auto">
-                {errorMessage.includes('waking up') || errorMessage.includes('initializing')
-                  ? 'The cloud handwriting engine is spinning up from sleep mode. Free cloud instances take ~30 seconds to initialize.'
-                  : errorMessage}
+              <p className="text-xs text-red-300 font-mono bg-[#050508] p-3.5 rounded-lg border border-red-950 text-left overflow-x-auto shadow-inner">
+                {errorMessage || 'Service encountered temporary latency or network cutoff.'}
               </p>
             </div>
 
-            {/* Practical connection guidance */}
-            <div className="text-xs text-[#525252] bg-[#FFFFFF] p-4 rounded-lg border border-[#D8CEBC] text-left space-y-2">
-              <div className="font-semibold text-[#171717] flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#2563EB]" />
-                Recommended Actions:
+            {/* Preserved Document Thumbnail Preview (Ensures user context is never lost) */}
+            {previewUrl && (
+              <div className="bg-[#050508] p-3 rounded-xl border border-red-950/60 flex items-center gap-4 text-left">
+                <img
+                  src={previewUrl}
+                  alt="Failed scan preview"
+                  className="w-16 h-16 object-cover rounded-lg border border-red-900/40 bg-black/60 shrink-0"
+                />
+                <div className="min-w-0 flex-1">
+                  <div className="text-xs font-semibold text-white truncate">
+                    {selectedFile ? selectedFile.name : 'Uploaded Document Scan'}
+                  </div>
+                  <div className="text-[11px] text-slate-400 mt-0.5">
+                    Your document is preserved in memory. You can retry Fast OCR or test a verified sample.
+                  </div>
+                </div>
               </div>
-              <ul className="list-disc pl-4 space-y-1 text-[11px] text-[#525252]">
-                <li>Click <strong>Retry Analysis</strong> to resend the document to the engine.</li>
-                <li>If the backend is waking from sleep, it will be ready within 10–20 seconds.</li>
-                <li>Verify your network connection can access secure HTTPS endpoints.</li>
+            )}
+
+            <div className="text-xs text-slate-300 space-y-1.5 text-left bg-[#08080d] p-4 rounded-xl border border-red-950/40 font-mono text-[11px]">
+              <div className="font-bold text-red-400 flex items-center gap-1.5">
+                <span>⚡ Quick Recovery Actions:</span>
+              </div>
+              <ul className="list-disc pl-4 space-y-1 text-slate-400">
+                <li><strong className="text-slate-200">Retry Fast OCR:</strong> Cloud instance may have been waking up from idle state.</li>
+                <li><strong className="text-slate-200">Use Sample Benchmark:</strong> Test verified clinical prescription or strikethrough samples.</li>
+                <li><strong className="text-slate-200">Scale scan:</strong> If uploading huge raw scans (&gt;15MB), resize to 1200px for faster processing.</li>
               </ul>
             </div>
 
-            {/* Action Buttons */}
             <div className="pt-2 flex flex-wrap justify-center gap-3">
               <button
                 type="button"
-                onClick={handleRetry}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[#2563EB] hover:bg-blue-700 text-white font-medium text-xs shadow-xs transition-colors"
+                onClick={() => handleProcess({ file: selectedFile, previewUrl })}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-xs shadow-lg shadow-red-950/60 transition-all border border-red-500/30"
               >
-                <RefreshCw className="w-3.5 h-3.5" />
-                Retry Analysis
+                <RotateCcw className="w-3.5 h-3.5" />
+                Retry Fast OCR
               </button>
-
               <button
                 type="button"
                 onClick={handleResetAll}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[#FFFFFF] hover:bg-[#FAF6EE] text-[#171717] font-medium text-xs border border-[#D8CEBC] transition-colors"
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#14141c] hover:bg-[#1a1a24] text-slate-300 font-semibold text-xs border border-red-950/60 transition-colors"
               >
-                <UploadCloud className="w-3.5 h-3.5" />
-                Upload Again
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setErrorMessage('')}
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-[#737373] hover:text-[#171717] text-xs transition-colors"
-              >
-                Clear Error
+                Return to Upload
               </button>
             </div>
           </div>
         )}
       </main>
 
-      {/* Technical Archival Footer */}
-      <footer className="border-t border-[#D8CEBC] bg-[#FAF6EE]/90 py-5 mt-auto">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[#525252]">
-          <div className="flex items-center gap-2">
-            <span className="font-bold text-[#171717]">Team CRY NOVA</span>
-            <span className="text-[#A39986]">•</span>
-            <span className="font-mono text-[#525252]">HNX26EPS04</span>
-            <span className="text-[#A39986]">•</span>
-            <span>Paper Intelligence Stack</span>
+      {/* Technical Footer */}
+      <footer className="border-t border-red-950/70 bg-[#050508] py-5 mt-auto">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-400">
+          <div className="flex items-center gap-2 font-mono">
+            <span className="font-bold text-red-500">CRY NOVA</span>
+            <span className="text-red-900">•</span>
+            <span>HNX26EPS04</span>
+            <span className="text-red-900">•</span>
+            <span className="text-slate-300">Extreme Bad-Handwriting Digitizing Stack</span>
           </div>
 
-          <div className="flex items-center gap-4 text-[11px] font-mono text-[#525252]">
-            <span className="text-[#2563EB] flex items-center gap-1.5 font-medium">
-              <span className="w-2 h-2 rounded-full bg-[#2563EB] animate-pulse" />
-              Live Pipeline Active (Zero Hallucination)
+          <div className="flex items-center gap-4 text-[11px] font-mono">
+            <span className="text-red-400 flex items-center gap-1.5 font-semibold">
+              <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+              RapidOCR ONNX + Forensic Vision Stack
             </span>
           </div>
         </div>

@@ -19,6 +19,49 @@ import tempfile
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+# Configure single-threaded execution caps before any ML/CV libraries load
+# Essential to prevent thread explosion & OOM kills on high-core cloud hosts (e.g. Render)
+os.environ["OMP_NUM_THREADS"] = "1"
+os.environ["OPENBLAS_NUM_THREADS"] = "1"
+os.environ["MKL_NUM_THREADS"] = "1"
+os.environ["VECLIB_MAXIMUM_THREADS"] = "1"
+os.environ["NUMEXPR_NUM_THREADS"] = "1"
+os.environ["ORT_NUM_THREADS"] = "1"
+
+try:
+    import cv2
+    cv2.setNumThreads(1)
+except Exception:
+    pass
+
+# Patch RapidOCR ONNX session to enforce 1 thread and avoid memory arena blowout
+try:
+    import rapidocr_onnxruntime.utils as ort_utils
+    from onnxruntime import SessionOptions, InferenceSession, GraphOptimizationLevel
+
+    def _low_memory_ort_init(self, config):
+        sess_opt = SessionOptions()
+        sess_opt.log_severity_level = 4
+        sess_opt.enable_cpu_mem_arena = False
+        sess_opt.intra_op_num_threads = 1
+        sess_opt.inter_op_num_threads = 1
+        sess_opt.graph_optimization_level = GraphOptimizationLevel.ORT_ENABLE_ALL
+
+        cpu_ep = 'CPUExecutionProvider'
+        cpu_provider_options = {'arena_extend_strategy': 'kSameAsRequested'}
+        EP_list = [(cpu_ep, cpu_provider_options)]
+
+        self._verify_model(config['model_path'])
+        self.session = InferenceSession(
+            config['model_path'],
+            sess_options=sess_opt,
+            providers=EP_list
+        )
+
+    ort_utils.OrtInferSession.__init__ = _low_memory_ort_init
+except Exception:
+    pass
+
 # Ensure both backend root and repo root are in sys.path
 _backend_dir = Path(__file__).resolve().parent
 if str(_backend_dir) not in sys.path:

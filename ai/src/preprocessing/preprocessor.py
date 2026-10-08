@@ -38,7 +38,7 @@ class ImagePreprocessor:
             raise TypeError(f"Unsupported image input type: {type(image_input)}")
 
     @staticmethod
-    def smart_resize(img: np.ndarray, min_dim: int = 650, max_dim: int = 1600) -> Tuple[np.ndarray, float]:
+    def smart_resize(img: np.ndarray, min_dim: int = 900, max_dim: int = 1600) -> Tuple[np.ndarray, float]:
         """
         Scales low-resolution handwriting to improve stroke visibility,
         and scales down oversized captures to optimize latency and memory.
@@ -148,7 +148,8 @@ class ImagePreprocessor:
     def process(
         self,
         image_input: Union[str, Path, np.ndarray],
-        enabled_ops: Optional[List[str]] = None
+        enabled_ops: Optional[List[str]] = None,
+        store_artifacts: bool = False
     ) -> Tuple[np.ndarray, np.ndarray, List[str], Dict[str, np.ndarray]]:
         """
         Executes the selective preprocessing chain.
@@ -160,7 +161,7 @@ class ImagePreprocessor:
             debug_artifacts: Dictionary mapping step names to intermediate visual arrays.
         """
         original = self.load_image(image_input)
-        debug_artifacts: Dict[str, np.ndarray] = {"0_original": original.copy()}
+        debug_artifacts: Dict[str, np.ndarray] = {"0_original": original.copy()} if store_artifacts else {}
         applied_ops: List[str] = []
 
         if enabled_ops is None:
@@ -174,13 +175,15 @@ class ImagePreprocessor:
             current, scale = self.smart_resize(current)
             if scale != 1.0:
                 applied_ops.append(f"smart_resize(scale={scale:.2f})")
-                debug_artifacts["1_resized"] = current.copy()
+                if store_artifacts:
+                    debug_artifacts["1_resized"] = current.copy()
 
         # Step 2: Illumination Normalization
         if "illumination_norm" in enabled_ops:
             current = self.normalize_illumination(current)
             applied_ops.append("normalize_illumination")
-            debug_artifacts["2_illum_norm"] = current.copy()
+            if store_artifacts:
+                debug_artifacts["2_illum_norm"] = current.copy()
         elif len(current.shape) == 3:
             current = cv2.cvtColor(current, cv2.COLOR_BGR2GRAY)
 
@@ -188,22 +191,26 @@ class ImagePreprocessor:
         if "clahe" in enabled_ops:
             current = self.enhance_contrast_clahe(current)
             applied_ops.append("clahe_contrast_enhancement")
-            debug_artifacts["3_clahe"] = current.copy()
+            if store_artifacts:
+                debug_artifacts["3_clahe"] = current.copy()
 
         # Step 4: Bilateral Denoising
         if "bilateral_denoise" in enabled_ops:
             current = self.denoise_bilateral(current)
             applied_ops.append("bilateral_denoise")
-            debug_artifacts["4_denoised"] = current.copy()
+            if store_artifacts:
+                debug_artifacts["4_denoised"] = current.copy()
 
         # Step 5: Deskew
         if "deskew" in enabled_ops:
             current, angle = self.estimate_and_deskew(current)
             if abs(angle) >= 0.7:
                 applied_ops.append(f"deskew(angle={angle:.1f}deg)")
-                debug_artifacts["5_deskewed"] = current.copy()
+                if store_artifacts:
+                    debug_artifacts["5_deskewed"] = current.copy()
 
-        debug_artifacts["final_preprocessed"] = current.copy()
+        if store_artifacts:
+            debug_artifacts["final_preprocessed"] = current.copy()
         return original, current, applied_ops, debug_artifacts
 
     @staticmethod
@@ -235,11 +242,10 @@ class ImagePreprocessor:
     def generate_variants(self, base_preprocessed: np.ndarray) -> Dict[str, np.ndarray]:
         """
         Generates candidate preprocessing variants for multi-pass OCR comparison.
+        Kept lean to minimize RAM overhead on low-memory environments.
         """
-        variants = {
+        return {
             "standard_enhanced": base_preprocessed,
             "sharpened_contrast": self.sharpen(base_preprocessed, amount=1.2),
-            "adaptive_binary": self.adaptive_threshold(base_preprocessed),
         }
-        return variants
 

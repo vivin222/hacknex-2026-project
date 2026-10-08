@@ -3,6 +3,48 @@ HTR / OCR Engine using RapidOCR (ONNX Runtime).
 Produces verbatim raw text, spatial bounding boxes, and un-fabricated confidence scores.
 """
 
+import os
+import cv2
+
+# Ensure thread caps are set on CPU runtime
+os.environ["OMP_NUM_THREADS"] = "1"
+os.environ["OPENBLAS_NUM_THREADS"] = "1"
+os.environ["MKL_NUM_THREADS"] = "1"
+os.environ["ORT_NUM_THREADS"] = "1"
+
+try:
+    cv2.setNumThreads(1)
+except Exception:
+    pass
+
+# Patch OrtInferSession in rapidocr_onnxruntime to prevent memory explosion from unbounded thread creation
+try:
+    import rapidocr_onnxruntime.utils as ort_utils
+    from onnxruntime import SessionOptions, InferenceSession, GraphOptimizationLevel
+
+    def _low_memory_ort_init(self, config):
+        sess_opt = SessionOptions()
+        sess_opt.log_severity_level = 4
+        sess_opt.enable_cpu_mem_arena = False
+        sess_opt.intra_op_num_threads = 1
+        sess_opt.inter_op_num_threads = 1
+        sess_opt.graph_optimization_level = GraphOptimizationLevel.ORT_ENABLE_ALL
+
+        cpu_ep = 'CPUExecutionProvider'
+        cpu_provider_options = {'arena_extend_strategy': 'kSameAsRequested'}
+        EP_list = [(cpu_ep, cpu_provider_options)]
+
+        self._verify_model(config['model_path'])
+        self.session = InferenceSession(
+            config['model_path'],
+            sess_options=sess_opt,
+            providers=EP_list
+        )
+
+    ort_utils.OrtInferSession.__init__ = _low_memory_ort_init
+except Exception:
+    pass
+
 from typing import List, Tuple, Optional, Dict, Any
 import numpy as np
 from rapidocr_onnxruntime import RapidOCR
@@ -139,8 +181,8 @@ class HTREngine:
         """
         raw_text, segments, avg_conf = self.recognize(primary_img)
 
-        # Fast path for clear documents
-        if avg_conf >= 0.84 or not variants or len(segments) >= 6:
+        # Fast path for clear documents: accept immediately to save CPU and latency
+        if avg_conf >= 0.70 or not variants or len(segments) >= 3:
             return raw_text, segments, avg_conf, {
                 "passesEvaluated": 1,
                 "selectedPass": "standard_enhanced",
