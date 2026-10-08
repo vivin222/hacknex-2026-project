@@ -9,20 +9,26 @@ import {
   Sparkles,
   FileText,
   ShieldCheck,
-  Check
+  Check,
+  ArrowRight,
+  FileSearch,
+  Scissors,
+  Activity
 } from 'lucide-react';
 import { SAMPLE_PRESETS, validateImageFile } from '../services/api';
 import { SAMPLE_IMAGES } from '../utils/sampleImages';
+import CharacterFieldCanvas from './CharacterFieldCanvas';
 
 /**
- * UploadPanel Component
- * Polished upload zone supporting:
- * - Drag and drop
- * - File browser input (PNG, JPG/JPEG)
- * - Immediate image preview & metadata display
- * - Clear/remove selected image
- * - Pre-loaded challenge handwriting presets for rapid testing
- * - Strict client-side validation & accessible controls
+ * UploadPanel Component — Astra-Style Spatial Homepage & Intelligence Desk
+ * Team: CRY NOVA | HNX26EPS04
+ *
+ * Visual Architecture:
+ * - Void-black canvas with spatial FIELD OF INDIVIDUAL CHARACTERS
+ * - Dominant central CRY NOVA hero with soft radial contrast mask
+ * - Primary CTA: ENTER OCR (triggers direct file picker or analysis)
+ * - Secondary CTA: EXPLORE INTELLIGENCE (launches benchmark intelligence)
+ * - Interactive zero-interruption upload desk and 3 benchmark dockets
  */
 export default function UploadPanel({
   onProcess = () => {},
@@ -75,7 +81,13 @@ export default function UploadPanel({
       return;
     }
     setSelectedPresetId(null);
-    onFileSelect(file, URL.createObjectURL(file));
+    const objUrl = URL.createObjectURL(file);
+    onFileSelect(file, objUrl);
+
+    // ZERO-INTERRUPTION WORKFLOW: Automatically trigger full pipeline immediately
+    if (onProcess) {
+      onProcess({ file, presetId: null });
+    }
   };
 
   const handleSelectPreset = async (preset) => {
@@ -86,47 +98,23 @@ export default function UploadPanel({
     const fileName = preset.fileName || (sampleUrl.split('/').pop()) || `${preset.id}_sample.png`;
 
     try {
-      // 1. Load the actual image asset as binary using fetch()
       const res = await fetch(sampleUrl);
-
-      // 2. Verify the fetch response is successful
       if (!res.ok) {
-        throw new Error(`Failed to load sample image (HTTP ${res.status}: ${res.statusText})`);
+        throw new Error(`Failed to load sample document (HTTP ${res.status}: ${res.statusText})`);
       }
-
-      // 3. Convert response to Blob
       const blob = await res.blob();
-
-      // 4. Verify Blob has a valid image MIME type
       const mimeType = blob.type || 'image/png';
-      if (!mimeType.startsWith('image/')) {
-        throw new Error(`Invalid MIME type for sample asset: ${mimeType}`);
-      }
-
-      // 5. Create a real File from that Blob with the correct filename and MIME type
       const file = new File([blob], fileName, { type: mimeType });
-
-      // Temporary console diagnostics for sample upload
-      console.log('[Sample Upload Diagnostic]', {
-        'sample URL': sampleUrl,
-        'HTTP status': res.status,
-        'Blob size': blob.size,
-        'Blob MIME type': blob.type,
-        'File name': file.name,
-        'File MIME type': file.type,
-        'File size': file.size,
-      });
-
-      // 6. Pass that File through the EXACT same upload/analyze function used by normal user file upload
       const objectUrl = URL.createObjectURL(file);
+
       onFileSelect(file, objectUrl, preset.id);
 
-      // Auto-trigger analysis for instant demo execution if onProcess is provided
+      // Auto-trigger analysis for instant demo execution
       if (onProcess) {
         onProcess({ file, presetId: preset.id });
       }
     } catch (err) {
-      console.error('[Sample Upload Error]', err);
+      console.error('[Sample Preset Error]', err);
       setErrorMsg(`Could not load sample: ${err.message}`);
       setSelectedPresetId(null);
     }
@@ -143,89 +131,141 @@ export default function UploadPanel({
 
   const handleTriggerProcess = () => {
     if (!previewUrl && !selectedFile) {
-      setErrorMsg('Please upload a handwriting image or choose one of the challenging test samples below.');
+      setErrorMsg('Please select a handwriting scan or choose one of the benchmark samples below.');
       return;
     }
     setErrorMsg('');
     onProcess({ file: selectedFile, presetId: selectedPresetId });
   };
 
+  // Primary Hero Navigation: ENTER OCR
+  const handleEnterOcr = () => {
+    if (selectedFile || previewUrl) {
+      handleTriggerProcess();
+    } else {
+      const deskElem = document.getElementById('ocr-workspace-desk');
+      if (deskElem) {
+        deskElem.scrollIntoView({ behavior: 'smooth' });
+      }
+      fileInputRef.current?.click();
+    }
+  };
+
+  // Secondary Hero Navigation: EXPLORE INTELLIGENCE
+  const handleExploreIntelligence = () => {
+    handleSelectPreset(SAMPLE_PRESETS[0]);
+  };
+
   return (
-    <div className="w-full max-w-4xl mx-auto space-y-8">
-      {/* Introduction Banner & Brand Identity */}
-      <div className="text-center space-y-3">
-        <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-red-950/70 text-red-300 border border-red-900/50 text-xs font-mono font-semibold shadow-md shadow-red-950/40">
-          <span className="text-red-500 font-black">CRY NOVA</span>
-          <span className="text-red-900">•</span>
-          <span>HNX26EPS04</span>
-          <span className="text-red-900">•</span>
-          <span className="text-slate-300">Extreme Bad-Handwriting Digitizing Stack</span>
+    <div className="relative w-full max-w-5xl mx-auto space-y-12 py-2">
+      {/* 1. SPATIAL FIELD OF INDIVIDUAL CHARACTERS (Canvas Animation, unmounted during OCR) */}
+      <CharacterFieldCanvas />
+
+      {/* 2. DOMINANT CENTRAL HERO WITH RADIAL CONTRAST MASK */}
+      <div className="relative z-10 text-center space-y-6 pt-6 sm:pt-14 pb-8">
+        {/* Radial Soft Contrast Mask behind Hero */}
+        <div className="absolute inset-0 pointer-events-none -z-10 bg-[radial-gradient(ellipse_75%_65%_at_50%_45%,rgba(5,5,8,0.96)_0%,rgba(5,5,8,0.72)_55%,transparent_100%)]" />
+
+        {/* Brand Tag Badge */}
+        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-red-950/40 text-red-400 border border-red-500/30 text-xs font-mono font-medium shadow-[0_0_15px_rgba(239,68,68,0.2)]">
+          <span className="font-bold text-white">CRY NOVA</span>
+          <span className="text-red-500/50">•</span>
+          <span className="text-neutral-400">HNX26EPS04</span>
+          <span className="text-red-500/50">•</span>
+          <span className="text-red-400 font-semibold">Document Intelligence Lab</span>
         </div>
-        <h2 className="text-3xl sm:text-4xl font-black tracking-tight text-white">
-          Turn Difficult Handwriting Into Evidence-Linked Intelligence.
-        </h2>
-        <p className="text-sm text-slate-400 max-w-2xl mx-auto leading-relaxed">
-          Robust, multi-pass digitization designed for illegible medical cursive, faded historical scripts, and rushed handwritten scrawls. Grounded in spatial provenance with human-in-the-loop uncertainty isolation.
+
+        {/* Central Dominant Headline */}
+        <h1 className="text-4xl sm:text-6xl md:text-7xl font-extrabold tracking-tight text-white drop-shadow-[0_0_40px_rgba(220,38,38,0.4)]">
+          CRY NOVA
+        </h1>
+
+        {/* Subtitle */}
+        <div className="text-sm sm:text-base md:text-lg font-mono font-bold tracking-widest uppercase text-red-500">
+          EXTREME BAD-HANDWRITING DIGITIZING STACK
+        </div>
+
+        {/* Tagline Manifesto */}
+        <p className="text-base sm:text-lg font-serif-doc italic text-neutral-400 max-w-2xl mx-auto">
+          "Turn difficult handwriting into evidence-linked intelligence."
         </p>
 
-        {/* 3-Step Visual Metaphor */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3 max-w-3xl mx-auto text-left">
-          <div className="p-3.5 rounded-xl bg-[#0a0a0f] border border-red-950/70 flex items-start gap-2.5 shadow-sm">
-            <span className="w-5 h-5 rounded-full bg-red-950 text-red-400 font-mono text-xs flex items-center justify-center shrink-0 mt-0.5 font-bold border border-red-900/50">
-              1
+        {/* Primary & Secondary Hero CTAs */}
+        <div className="flex flex-wrap items-center justify-center gap-4 pt-2">
+          <button
+            type="button"
+            onClick={handleEnterOcr}
+            className="px-8 py-3.5 rounded-xl font-bold text-sm tracking-wide bg-gradient-to-r from-[#DC2626] to-[#EF4444] hover:from-[#B91C1C] hover:to-[#DC2626] text-white shadow-[0_0_25px_rgba(239,68,68,0.5)] hover:shadow-[0_0_35px_rgba(239,68,68,0.7)] transition-all flex items-center gap-2 transform hover:-translate-y-0.5 cursor-pointer"
+          >
+            <Play className="w-4 h-4 fill-white" />
+            <span>ENTER OCR</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleExploreIntelligence}
+            className="px-8 py-3.5 rounded-xl font-semibold text-sm tracking-wide bg-neutral-900/80 hover:bg-neutral-800 text-neutral-200 hover:text-white border border-neutral-700/80 hover:border-red-500/60 shadow-lg backdrop-blur-md transition-all flex items-center gap-2 transform hover:-translate-y-0.5 cursor-pointer"
+          >
+            <Sparkles className="w-4 h-4 text-red-400" />
+            <span>EXPLORE INTELLIGENCE</span>
+          </button>
+        </div>
+
+        {/* Concept Visual Architecture Pillars */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 pt-6 max-w-3xl mx-auto text-left">
+          <div className="p-4 rounded-xl bg-neutral-950/70 border border-neutral-800 flex items-start gap-3 shadow-xs hover:border-red-500/40 transition-colors backdrop-blur-sm">
+            <span className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#DC2626] to-[#B91C1C] text-white font-mono text-xs flex items-center justify-center shrink-0 mt-0.5 font-bold shadow-2xs">
+              01
             </span>
             <div>
-              <h4 className="text-xs font-bold text-white">Physical Paper</h4>
-              <p className="text-[11px] text-slate-400">Degraded ink, ligatures, and physical pen strikethroughs.</p>
+              <h4 className="text-xs font-bold uppercase tracking-wider text-red-400">Physical Paper</h4>
+              <p className="text-xs text-neutral-400 mt-0.5">Degraded ink strokes, cursive ligatures & pen strikethroughs.</p>
             </div>
           </div>
 
-          <div className="p-3.5 rounded-xl bg-[#0a0a0f] border border-red-900/50 flex items-start gap-2.5 shadow-sm">
-            <span className="w-5 h-5 rounded-full bg-red-900/80 text-red-200 font-mono text-xs flex items-center justify-center shrink-0 mt-0.5 font-bold border border-red-700/60">
-              2
+          <div className="p-4 rounded-xl bg-neutral-950/70 border border-neutral-800 flex items-start gap-3 shadow-xs hover:border-red-500/40 transition-colors backdrop-blur-sm">
+            <span className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#8B5CF6] to-[#DC2626] text-white font-mono text-xs flex items-center justify-center shrink-0 mt-0.5 font-bold shadow-2xs">
+              02
             </span>
             <div>
-              <h4 className="text-xs font-bold text-red-300">Digital Recognition</h4>
-              <p className="text-[11px] text-slate-400">RapidOCR ONNX multi-pass recognition & spatial bounding boxes.</p>
+              <h4 className="text-xs font-bold uppercase tracking-wider text-purple-400">Digital Recognition</h4>
+              <p className="text-xs text-neutral-400 mt-0.5">RapidOCR ONNX (0.3s), stroke isolation & uncertainty engine.</p>
             </div>
           </div>
 
-          <div className="p-3.5 rounded-xl bg-[#0a0a0f] border border-cyan-950/70 flex items-start gap-2.5 shadow-sm">
-            <span className="w-5 h-5 rounded-full bg-cyan-950 text-cyan-300 font-mono text-xs flex items-center justify-center shrink-0 mt-0.5 font-bold border border-cyan-800/60">
-              3
+          <div className="p-4 rounded-xl bg-neutral-950/70 border border-neutral-800 flex items-start gap-3 shadow-xs hover:border-red-500/40 transition-colors backdrop-blur-sm">
+            <span className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#10B981] to-[#06B6D4] text-white font-mono text-xs flex items-center justify-center shrink-0 mt-0.5 font-bold shadow-2xs">
+              03
             </span>
             <div>
-              <h4 className="text-xs font-bold text-cyan-300">AI Intelligence</h4>
-              <p className="text-[11px] text-slate-400">Grounded entities, measurements, provenance & interactive Q&A.</p>
+              <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-400">AI Intelligence</h4>
+              <p className="text-xs text-neutral-400 mt-0.5">Extracted entities, claims, revisions & grounded citations.</p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Error notification */}
-      {errorMsg && (
-        <div
-          role="alert"
-          className="flex items-center gap-2.5 p-3.5 bg-rose-950/80 border border-rose-500/60 rounded-xl text-xs text-rose-200 animate-fadeIn shadow-lg shadow-rose-950/40"
-        >
-          <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
-          <span className="font-semibold">{errorMsg}</span>
-        </div>
-      )}
+      {/* 3. MAIN UPLOAD & DIGITIZATION DESK */}
+      <div id="ocr-workspace-desk" className="relative z-10 bg-[#0c0d12]/95 border border-neutral-800/90 rounded-2xl p-6 sm:p-8 shadow-2xl backdrop-blur-xl">
+        {/* Validation Error Alert */}
+        {errorMsg && (
+          <div className="mb-6 p-4 rounded-xl bg-red-950/60 border border-red-500/40 text-red-400 text-xs flex items-center gap-2.5">
+            <AlertCircle className="w-4 h-4 shrink-0 text-red-400" />
+            <span className="font-medium">{errorMsg}</span>
+          </div>
+        )}
 
-      {/* Upload Dropzone Container */}
-      <div className="bg-[#0c0c12] border border-red-950/70 rounded-2xl p-6 shadow-2xl shadow-black backdrop-blur-sm">
+        {/* Upload Dropzone / Document Preview State */}
         {!previewUrl ? (
-          /* Dropzone Empty State */
           <div
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
             onClick={() => fileInputRef.current?.click()}
-            className={`border-2 border-dashed rounded-xl p-8 sm:p-12 text-center cursor-pointer transition-all duration-200 ${
+            className={`relative overflow-hidden border-2 border-dashed rounded-2xl p-8 sm:p-12 text-center cursor-pointer transition-all duration-200 ${
               isDragging
-                ? 'border-red-500 bg-red-950/40 ring-2 ring-red-500/30'
-                : 'border-red-950/60 hover:border-red-700/60 bg-[#07070b]/60 hover:bg-[#0a0a10]'
+                ? 'border-red-500 bg-red-950/30 shadow-[0_0_30px_rgba(239,68,68,0.25)]'
+                : 'border-neutral-700/80 hover:border-red-500/70 bg-[#12131a]/60 hover:bg-[#151622]/80 hover:shadow-lg'
             }`}
           >
             <input
@@ -234,39 +274,39 @@ export default function UploadPanel({
               onChange={handleFileChange}
               accept="image/png, image/jpeg, image/jpg, image/webp"
               className="hidden"
-              id="file-upload-input"
             />
 
-            <div className="flex flex-col items-center justify-center space-y-3">
-              <div className="w-14 h-14 rounded-2xl bg-red-950/80 border border-red-800/50 flex items-center justify-center text-red-400 shadow-md shadow-red-950/50 group-hover:scale-105 transition-transform">
-                <UploadCloud className="w-7 h-7" />
+            <div className="flex flex-col items-center justify-center space-y-3.5">
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-[#DC2626] via-[#EF4444] to-[#991B1B] flex items-center justify-center text-white shadow-[0_0_20px_rgba(239,68,68,0.4)]">
+                <UploadCloud className="w-8 h-8 text-white" />
               </div>
-              <div className="space-y-1">
-                <p className="text-sm font-bold text-white">
-                  Drag and drop your handwriting scan here, or{' '}
-                  <span className="text-red-400 underline underline-offset-2 hover:text-red-300">browse</span>
+
+              <div>
+                <p className="text-base sm:text-lg font-bold text-white">
+                  Drop handwritten manuscript or click to browse
                 </p>
-                <p className="text-xs text-slate-400">
-                  Supports PNG, JPG, JPEG, WEBP (Max 15MB)
+                <p className="text-xs text-neutral-400 mt-1">
+                  Supports high-resolution PNG, JPG, JPEG, WEBP (Max 15MB)
                 </p>
               </div>
 
-              <div className="pt-2 text-[11px] text-slate-500 font-mono">
-                Guidance: High-contrast lighting and flat scans yield the cleanest ligatures
+              <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-emerald-950/60 border border-emerald-500/30 text-emerald-300 text-[11px] font-mono font-medium">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                <span>Zero-Interruption Auto-Analysis: Dropping a document starts the pipeline instantly</span>
               </div>
             </div>
           </div>
         ) : (
-          /* Image Selected / Preview State */
+          /* Document Selected State */
           <div className="space-y-5">
-            <div className="flex items-center justify-between pb-3 border-b border-red-950/60">
-              <div className="flex items-center gap-2">
-                <FileImage className="w-4 h-4 text-red-400" />
-                <span className="text-xs font-bold text-white">
-                  {selectedFile ? selectedFile.name : `Preset: ${SAMPLE_PRESETS.find(p => p.id === selectedPresetId)?.title || 'Selected Scan'}`}
+            <div className="flex items-center justify-between pb-3 border-b border-neutral-800">
+              <div className="flex items-center gap-2 min-w-0">
+                <FileImage className="w-4 h-4 text-red-500 shrink-0" />
+                <span className="text-xs font-semibold text-white truncate">
+                  {selectedFile ? selectedFile.name : `Selected Document`}
                 </span>
                 {selectedFile && (
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-red-950/80 text-red-300 border border-red-900/40">
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-neutral-800 text-neutral-300">
                     {(selectedFile.size / 1024).toFixed(0)} KB
                   </span>
                 )}
@@ -275,27 +315,26 @@ export default function UploadPanel({
               <button
                 type="button"
                 onClick={handleClearSelected}
-                className="inline-flex items-center gap-1 text-xs text-slate-400 hover:text-rose-400 hover:bg-red-950/50 px-2.5 py-1 rounded transition-colors border border-transparent hover:border-red-900/40"
-                title="Remove selected image"
+                className="inline-flex items-center gap-1 text-xs text-neutral-400 hover:text-red-400 px-2 py-1 rounded transition-colors cursor-pointer"
               >
                 <X className="w-3.5 h-3.5" />
                 <span>Remove</span>
               </button>
             </div>
 
-            {/* Preview Box */}
-            <div className="relative rounded-xl overflow-hidden bg-[#050508] border border-red-950/60 flex items-center justify-center max-h-[380px] p-3 shadow-inner">
+            {/* Document Preview Box */}
+            <div className="relative rounded-xl overflow-hidden bg-neutral-900 border border-neutral-800 flex items-center justify-center max-h-[380px] p-3 shadow-inner">
               <img
                 src={previewUrl}
-                alt="Uploaded handwriting scan preview"
-                className="max-h-[360px] max-w-full rounded object-contain shadow-2xl"
+                alt="Selected handwriting scan"
+                className="max-h-[360px] max-w-full rounded-lg object-contain"
               />
             </div>
 
-            {/* Action Bar */}
+            {/* Process Button */}
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2">
-              <div className="text-xs text-slate-400 flex items-center gap-1.5 font-mono">
-                <HelpCircle className="w-3.5 h-3.5 text-red-500/70" />
+              <div className="text-xs text-neutral-400 flex items-center gap-1.5 font-mono">
+                <HelpCircle className="w-3.5 h-3.5 text-red-400" />
                 <span>Ready for neural OCR analysis & uncertainty isolation.</span>
               </div>
 
@@ -303,7 +342,7 @@ export default function UploadPanel({
                 type="button"
                 onClick={handleTriggerProcess}
                 disabled={isProcessing}
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-sm shadow-lg shadow-red-950/60 disabled:opacity-50 transition-all hover:scale-[1.02] active:scale-[0.98] border border-red-500/30"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-[#DC2626] to-[#EF4444] hover:opacity-95 text-white font-medium text-sm shadow-md disabled:opacity-50 transition-opacity cursor-pointer"
               >
                 <Play className="w-4 h-4 fill-white" />
                 <span>Process & Digitize Handwriting</span>
@@ -312,64 +351,110 @@ export default function UploadPanel({
           </div>
         )}
 
-        {/* Challenging Handwriting Presets (Allows judges to test immediately) */}
-        <div className="mt-8 pt-6 border-t border-red-950/60">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-300">
-              Or Test With Realistic Challenging Manuscripts:
+        {/* 4. SAMPLE DOCUMENT BENCHMARKS — 3 AUTHENTIC ARCHIVAL DOCKETS */}
+        <div className="mt-8 pt-6 border-t border-neutral-800">
+          <div className="flex items-center justify-between mb-4">
+            <span className="text-xs font-bold uppercase tracking-wider text-white flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse" />
+              Sample Document Experience — Test Benchmarks:
             </span>
-            <span className="text-[10px] font-mono text-red-400">
-              Instant Hackathon Benchmarks
+            <span className="text-[10px] font-mono text-neutral-400 uppercase">
+              1-Click Instant Execution
             </span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {SAMPLE_PRESETS.map((preset) => {
               const isSelected = selectedPresetId === preset.id && !selectedFile;
+              const isSample1 = preset.code === 'SAMPLE 01' || preset.id === 'sample_01' || preset.id === 'clinical';
+              const isSample2 = preset.code === 'SAMPLE 02' || preset.id === 'sample_02' || preset.id === 'historical';
+              const isSample3 = preset.code === 'SAMPLE 03' || preset.id === 'sample_03' || preset.id === 'engineering';
+
+              const accentBorder = isSample1
+                ? 'border-l-4 border-l-[#2563EB]'
+                : isSample2
+                ? 'border-l-4 border-l-[#DC2626]'
+                : 'border-l-4 border-l-[#06B6D4]';
+
+              const badgeColor = isSample1
+                ? 'bg-blue-950/60 text-blue-400 border-blue-500/40'
+                : isSample2
+                ? 'bg-red-950/60 text-red-400 border-red-500/40'
+                : 'bg-cyan-950/60 text-cyan-400 border-cyan-500/40';
+
+              const buttonGradient = isSample1
+                ? 'bg-gradient-to-r from-[#2563EB] to-[#06B6D4] hover:opacity-95 text-white'
+                : isSample2
+                ? 'bg-gradient-to-r from-[#DC2626] to-[#EF4444] hover:opacity-95 text-white'
+                : 'bg-gradient-to-r from-[#0891B2] to-[#06B6D4] hover:opacity-95 text-white';
 
               return (
-                <button
+                <div
                   key={preset.id}
-                  type="button"
-                  onClick={() => handleSelectPreset(preset)}
-                  className={`p-3.5 rounded-xl border text-left transition-all relative ${
+                  className={`bg-[#12131a]/80 border rounded-xl p-4.5 flex flex-col justify-between transition-all duration-200 ${accentBorder} ${
                     isSelected
-                      ? 'bg-red-950/50 border-red-500 ring-1 ring-red-500/50 shadow-lg shadow-red-950/50'
-                      : 'bg-[#08080d] border-red-950/60 hover:border-red-800/60 hover:bg-[#0c0c14]'
+                      ? 'border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.3)] ring-2 ring-red-500/30'
+                      : 'border-neutral-800 hover:border-neutral-700 hover:shadow-lg'
                   }`}
                 >
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-red-950/80 text-red-300 border border-red-900/40 font-semibold">
-                      {preset.tag}
-                    </span>
-                    {isSelected && (
-                      <span className="w-4 h-4 rounded-full bg-red-600 text-white flex items-center justify-center text-[10px] font-bold">
-                        ✓
+                  <div>
+                    {/* Header: Sample Code & Tag */}
+                    <div className="flex items-center justify-between gap-2 mb-2">
+                      <span className="font-mono text-xs font-bold tracking-tight text-white">
+                        {preset.code || preset.title}
                       </span>
-                    )}
+                      <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full border ${badgeColor} font-semibold`}>
+                        {preset.tag || 'Challenge Scan'}
+                      </span>
+                    </div>
+
+                    {/* Document Title */}
+                    <h3 className="text-sm font-bold text-white mb-2">
+                      {preset.title}
+                    </h3>
+
+                    {/* Document Thumbnail Preview */}
+                    <div className="w-full h-28 bg-neutral-900 rounded-lg border border-neutral-800 overflow-hidden mb-3 relative group">
+                      <img
+                        src={preset.sampleUrl}
+                        alt={preset.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                      />
+                      <div className="absolute inset-0 bg-black/20" />
+                    </div>
+
+                    {/* Capability Description */}
+                    <p className="text-xs text-neutral-400 leading-relaxed mb-4">
+                      {preset.description}
+                    </p>
                   </div>
-                  <h4 className="text-xs font-bold text-white mt-1 line-clamp-1">
-                    {preset.title}
-                  </h4>
-                  <p className="text-[11px] text-slate-400 line-clamp-2 mt-1">
-                    {preset.description}
-                  </p>
-                </button>
+
+                  {/* Try Sample Action Button */}
+                  <button
+                    type="button"
+                    onClick={() => handleSelectPreset(preset)}
+                    disabled={isProcessing}
+                    className={`w-full py-2.5 px-3 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-all shadow-md cursor-pointer ${buttonGradient}`}
+                  >
+                    <span>⚡ Run Benchmark Scan</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               );
             })}
           </div>
         </div>
       </div>
 
-      {/* Realistic System Disclaimer */}
-      <div className="p-4 rounded-xl bg-[#0a0a0f] border border-red-950/60 text-xs text-slate-400 flex items-start gap-3 shadow-sm">
-        <ShieldCheck className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+      {/* 5. PROTOCOL NOTICE */}
+      <div className="relative z-10 p-4 rounded-xl bg-neutral-950/80 border border-neutral-800/80 text-xs text-neutral-400 flex items-start gap-3 shadow-xs">
+        <ShieldCheck className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
         <div className="space-y-1">
-          <p className="text-slate-200 font-bold">
-            Realistic Accuracy & Human-in-the-Loop Protocol
+          <p className="text-white font-semibold">
+            Paper Intelligence Audit Standard
           </p>
-          <p className="leading-relaxed text-[11px] text-slate-400">
-            Extreme handwriting inherently possesses optical ambiguities (e.g. overlapping loops, faded ink, scribbled strikethroughs). This stack does not falsely claim 100% flawless recognition; instead, it detects, isolates, and flags low-confidence regions for rapid user verification and export.
+          <p className="leading-relaxed text-[11px] text-neutral-400">
+            Extreme low-legibility handwriting is decoded with multi-pass OCR, visual strikethrough inspection, and grounded confidence scoring. Low-certainty segments are explicitly surfaced for human verification rather than silently hallucinated.
           </p>
         </div>
       </div>
