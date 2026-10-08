@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+
+# Environment Variables & Secrets
+.env
+*.env.local
+
+# Outputs / Debug
+output/
+debug_artifacts/
+*.log
+
+# IDE
+.vscode/
+.idea/
