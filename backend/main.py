@@ -11,6 +11,7 @@ os.environ.setdefault("MKL_NUM_THREADS", "2")
 os.environ.setdefault("VECLIB_MAXIMUM_THREADS", "2")
 os.environ.setdefault("NUMEXPR_NUM_THREADS", "2")
 
+import asyncio
 import io
 import logging
 import sys
@@ -212,18 +213,21 @@ async def _handle_uploaded_image(upload: UploadFile) -> Dict[str, Any]:
             temp_file_path = tf.name
             temp_file = temp_file_path
 
-        # 6. Delegate to the AI Service adapter with actual image path and real filename
-        result = process_image(temp_file_path, filename=original_filename)
+        # 6. Delegate to the AI Service adapter in worker threadpool to keep FastAPI event loop free
+        result = await asyncio.to_thread(process_image, temp_file_path, filename=original_filename)
         return result
 
     except HTTPException:
         raise
     except Exception as proc_err:
         logger.error(f"Error processing image {original_filename}: {proc_err}", exc_info=True)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="An error occurred during image processing.",
-        )
+        # Never crash the worker! Return graceful error payload
+        return {
+            "success": False,
+            "filename": original_filename,
+            "error": "Handwriting analysis encountered an error.",
+            "detail": str(proc_err),
+        }
     finally:
         # Safe cleanup of the temporary file
         if temp_file and os.path.exists(temp_file):

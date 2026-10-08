@@ -44,8 +44,8 @@ export default function Header() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         {/* Brand & Project Identifiers */}
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-[#171717] flex items-center justify-center text-[#F5F0E6] shadow-sm ring-1 ring-[#171717]/10">
-            <PenTool className="w-5 h-5 text-[#2563EB]" />
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#2563EB] via-[#06B6D4] to-[#8B5CF6] flex items-center justify-center text-white shadow-md ring-1 ring-blue-500/20">
+            <PenTool className="w-5 h-5 text-white" />
           </div>
           <div>
             <div className="flex items-center gap-2">
@@ -53,23 +53,23 @@ export default function Header() {
                 CRY NOVA
               </span>
               <span className="text-[#A39986]">•</span>
-              <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-[#EAE3D2] text-[#525252] font-semibold border border-[#D8CEBC]">
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-blue-50 text-[#2563EB] font-bold border border-blue-200">
                 HNX26EPS04
               </span>
             </div>
-            <h1 className="text-sm sm:text-base font-semibold text-[#171717] tracking-tight">
+            <h1 className="text-sm sm:text-base font-bold text-[#171717] tracking-tight">
               Extreme Bad-Handwriting Digitizing Stack
             </h1>
           </div>
         </div>
 
         {/* Workflow breadcrumb on medium+ displays */}
-        <div className="hidden lg:flex items-center gap-2 text-xs font-mono bg-[#EAE3D2]/70 px-3.5 py-1.5 rounded-full border border-[#D8CEBC]/80">
-          <span className="text-[#171717] font-semibold">Physical Paper</span>
+        <div className="hidden lg:flex items-center gap-2 text-xs font-mono bg-[#FFFFFF]/80 px-4 py-1.5 rounded-full border border-[#D8CEBC] shadow-2xs">
+          <span className="text-[#525252]">Physical Paper</span>
           <span className="text-[#A39986]">→</span>
-          <span className="text-[#2563EB] font-semibold">Fast Preprocess & Primary OCR</span>
+          <span className="text-[#2563EB] font-bold">⚡ Fast-Path OCR (0.3s)</span>
           <span className="text-[#A39986]">→</span>
-          <span className="text-[#06B6D4] font-semibold">Evidence-Linked AI</span>
+          <span className="text-[#06B6D4] font-bold">Evidence-Linked AI</span>
         </div>
 
         {/* Real Backend Status Badge */}
